@@ -1,0 +1,52 @@
+import { useEffect, useRef } from 'react'
+import { useGun } from '@/hooks/useGun'
+import { useXmtpClient } from '@/hooks/useXmtpClient'
+import { usePresenceStore } from '@/stores/presenceStore'
+import { subscribeToPresence, type GunPresenceData } from '@/lib/gun-presence'
+import { getOnlineUsers } from '@/services/presenceService'
+
+const CLEANUP_INTERVAL_MS = 10_000
+
+/**
+ * Subscribes to presence for a room, maintains online user list,
+ * and periodically prunes stale users.
+ */
+export function useOnlineUsers(roomKey: string | null): void {
+  const gun = useGun()
+  const { inboxId } = useXmtpClient()
+  const setOnlineUsers = usePresenceStore((s) => s.setOnlineUsers)
+  const recordsRef = useRef(new Map<string, GunPresenceData>())
+
+  useEffect(() => {
+    if (!roomKey) {
+      setOnlineUsers([])
+      return
+    }
+
+    const records = recordsRef.current
+    records.clear()
+
+    const pushUpdate = () => {
+      const all = getOnlineUsers(records)
+      const filtered = inboxId ? all.filter((u) => u.inboxId !== inboxId) : all
+      setOnlineUsers(filtered)
+    }
+
+    const unsub = subscribeToPresence(gun, roomKey, (data, key) => {
+      if (data) {
+        records.set(key, data)
+      }
+      pushUpdate()
+    })
+
+    // Periodic cleanup — removes stale users who haven't sent a heartbeat
+    const cleanupTimer = setInterval(pushUpdate, CLEANUP_INTERVAL_MS)
+
+    return () => {
+      unsub()
+      clearInterval(cleanupTimer)
+      records.clear()
+      setOnlineUsers([])
+    }
+  }, [roomKey, inboxId, gun, setOnlineUsers])
+}

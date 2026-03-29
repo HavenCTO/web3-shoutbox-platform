@@ -1,0 +1,7 @@
+# CDN / Hosting Headers for the Shoutbox
+# These ensure the /embed/* routes can be loaded in iframes on any domain.
+
+/embed/*
+  Content-Security-Policy: frame-ancestors *
+  X-Frame-Options: ALLOWALL
+  Access-Control-Allow-Origin: *

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web3 Shoutbox — Embed Test Page</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f0f2f5;
+      color: #333;
+    }
+
+    h1 { color: #1a1a2e; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 8px; font-size: 1.5rem; }
+    h2 { color: #444; margin: 0 0 12px; font-size: 1.1rem; }
+
+    .note {
+      background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px 14px;
+      border-radius: 6px; margin-bottom: 20px; font-size: 13px; color: #856404;
+    }
+    .note code { background: #fdf0c4; padding: 1px 4px; border-radius: 3px; }
+
+    .section {
+      background: #fff; border-radius: 8px; padding: 16px 20px;
+      margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* ── Configuration Panel ── */
+    .config-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px;
+      margin-bottom: 12px;
+    }
+    .config-grid label { font-size: 13px; font-weight: 600; color: #555; display: block; margin-bottom: 3px; }
+    .config-grid input, .config-grid select {
+      width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 13px; font-family: monospace;
+    }
+    .config-grid .full-width { grid-column: 1 / -1; }
+
+    .toggle-row { display: flex; gap: 20px; align-items: center; margin-bottom: 12px; }
+    .toggle-row label { font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
+    button {
+      padding: 7px 16px; border: none; border-radius: 4px; cursor: pointer;
+      font-size: 13px; font-weight: 500; transition: background 0.15s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    .btn-secondary:hover { background: #4b5563; }
+    .btn-dark { background: #1e293b; color: #fff; }
+    .btn-dark:hover { background: #0f172a; }
+
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Iframe Area ── */
+    .iframes-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .iframe-col h3 { font-size: 13px; color: #666; margin-bottom: 6px; }
+    .iframe-wrap {
+      border: 2px solid #d1d5db; border-radius: 8px; overflow: hidden; background: #fafafa;
+    }
+    .iframe-wrap iframe { width: 100%; border: none; display: block; }
+
+    /* ── Command Sender ── */
+    .cmd-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .cmd-row input { flex: 1; min-width: 200px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-family: monospace; }
+    .cmd-row span { font-size: 12px; color: #888; }
+
+    /* ── Event Log ── */
+    .event-log {
+      background: #0f172a; color: #a3e635; font-family: 'Courier New', monospace;
+      padding: 12px; border-radius: 6px; height: 280px; overflow-y: auto;
+      font-size: 12px; line-height: 1.6;
+    }
+    .event-log .ts { color: #64748b; }
+    .event-log .src { color: #94a3b8; font-style: italic; }
+    /* Color-coded event types */
+    .event-log .evt-ready { color: #22c55e; font-weight: bold; }
+    .event-log .evt-wallet-connected { color: #22c55e; }
+    .event-log .evt-wallet-disconnected { color: #f97316; }
+    .event-log .evt-message-sent { color: #3b82f6; }
+    .event-log .evt-message-received { color: #3b82f6; }
+    .event-log .evt-presence-updated { color: #8b5cf6; }
+    .event-log .evt-resize { color: #64748b; }
+    .event-log .evt-status-response { color: #06b6d4; }
+    .event-log .evt-error { color: #ef4444; font-weight: bold; }
+    .event-log .evt-default { color: #fbbf24; font-weight: bold; }
+    .event-log .payload { color: #94a3b8; margin-left: 18px; white-space: pre-wrap; }
+    .log-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+    .log-toolbar span { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+
+  <h1>💬 Web3 Shoutbox — Embed Integration Test</h1>
+  <div class="note">
+    <strong>Dev tool:</strong> Make sure the Vite dev server is running at
+    <code>http://localhost:3000</code> before using this page.
+    This page simulates a third-party site embedding the shoutbox iframe.
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       1. CONFIGURATION PANEL
+       ════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>⚙️ Embed Configuration</h2>
+
+    <div class="config-grid">
+      <div class="full-width">
+        <label for="cfg-base">Base URL</label>
+        <input id="cfg-base" value="http://localhost:3000/embed/shoutbox" />
+      </div>
+      <div>
+        <label for="cfg-room">Room (optional — defaults to parent URL)</label>
+        <input id="cfg-room" placeholder="e.g. https://example.com/blog/post-1" />
+      </div>
+      <div>
+        <label for="cfg-maxHeight">Max Height (px)</label>
+        <input id="cfg-maxHeight" type="number" value="600" />
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <label><input type="checkbox" id="cfg-dark" /> Dark theme</label>
+      <label><input type="checkbox" id="cfg-compact" /> Compact mode</label>
+      <label><input type="checkbox" id="cfg-presence" checked /> Show presence</label>
+      <label><input type="checkbox" id="cfg-dual" checked /> Dual iframes (two users)</label>
+    </div>
+
+    <button class="btn-primary" onclick="applyConfig()">Apply &amp; Reload Iframes</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       2. IFRAME INSTANCES
+       ════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>🖼️ Embedded Shoutbox</h2>
+    <div class="iframes-row" id="iframes-row">
+      <div class="iframe-col">
+        <h3>Instance A</h3>
+        <div class="iframe-wrap">
+          <iframe id="frame-a" src="http://localhost:3000/embed/shoutbox" height="600" allow="clipboard-write"></iframe>
+        </div>
+      </div>
+      <div class="iframe-col" id="col-b">
+        <h3>Instance B</h3>
+        <div class="iframe-wrap">
+          <iframe id="frame-b" src="http://localhost:3000/embed/shoutbox" height="600" allow="clipboard-write"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       3. COMMAND SENDER
+       Sends PostMessage commands to the iframe(s).
+       Parent → iframe messages use source: 'web3-shoutbox-parent'
+       ════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>🎮 Send Commands to Iframe</h2>
+
+    <div class="cmd-row">
+      <input id="cmd-room" placeholder="Room URL or name" />
+      <button class="btn-primary" onclick="sendCmd('set-room', { room: document.getElementById('cmd-room').value })">Set Room</button>
+      <span>→ set-room</span>
+    </div>
+
+    <div class="cmd-row">
+      <button class="btn-secondary" onclick="sendCmd('set-theme', { theme: 'light' })">Theme: Light</button>
+      <button class="btn-dark" onclick="sendCmd('set-theme', { theme: 'dark' })">Theme: Dark</button>
+      <button class="btn-primary" onclick="sendCmd('get-status')">Get Status</button>
+      <span>→ set-theme / get-status</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       4. POSTMESSAGE EVENT LOG
+       Displays all events received from the iframe.
+       Filters by event.data.source === 'web3-shoutbox'.
+       ════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>📋 PostMessage Event Log</h2>
+    <div class="event-log" id="event-log"></div>
+    <div class="log-toolbar">
+      <span id="event-count">0 events</span>
+      <div class="btn-group">
+        <button class="btn-secondary" onclick="toggleAutoResize()">Toggle Auto-Resize</button>
+        <button class="btn-danger" onclick="clearLog()">Clear Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       5. INTEGRATION TEST CHECKLIST
+       ════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>✅ End-to-End Verification Checklist</h2>
+    <ol style="font-size:13px; line-height:2; padding-left:20px; color:#555;">
+      <li>Page loads → iframe loads → <code>ready</code> event logged above</li>
+      <li>Connect wallet inside iframe → <code>wallet-connected</code> event with address</li>
+      <li>Send a message → <code>message-sent</code> event (no content, only messageId)</li>
+      <li>Open Instance B, connect second wallet → <code>presence-updated</code> with new count</li>
+      <li>Click "Set Room" above → iframe switches rooms</li>
+      <li>Click "Get Status" → <code>status-response</code> event with current state</li>
+      <li>Click "Theme: Dark" → iframe switches to dark mode</li>
+      <li>Resize events appear as content height changes</li>
+    </ol>
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       JAVASCRIPT — PostMessage handling
+       ════════════════════════════════════════════ -->
+  <script>
+    /*
+     * PostMessage Protocol Reference
+     * ──────────────────────────────
+     * iframe → parent  (events):  source = 'web3-shoutbox'
+     *   types: ready, wallet-connected, wallet-disconnected, message-sent,
+     *          message-received, presence-updated, error, resize, status-response
+     *
+     * parent → iframe  (commands): source = 'web3-shoutbox-parent'
+     *   types: set-room, set-theme, get-status
+     */
+
+    const IFRAME_ORIGIN = 'http://localhost:3000';
+    const logEl = document.getElementById('event-log');
+    let eventCount = 0;
+    let autoResize = true;
+
+    // ── Listen for all PostMessage events from the shoutbox iframe ──
+    window.addEventListener('message', (event) => {
+      // Only handle messages from our shoutbox widget
+      if (event.data?.source !== 'web3-shoutbox') return;
+
+      logEvent(event.data.type, event.data.payload, event.origin);
+
+      // Auto-resize: adjust iframe height when the widget requests it
+      if (autoResize && event.data.type === 'resize' && event.data.payload?.height) {
+        const h = event.data.payload.height + 'px';
+        document.getElementById('frame-a').style.height = h;
+        const fb = document.getElementById('frame-b');
+        if (fb) fb.style.height = h;
+      }
+    });
+
+    // ── Log an event to the console panel ──
+    function logEvent(type, payload, origin) {
+      eventCount++;
+      document.getElementById('event-count').textContent = eventCount + ' events';
+
+      const ts = new Date().toLocaleTimeString('en-US', { hour12: false, fractionalSecondDigits: 3 });
+      const cssClass = 'evt-' + (type || 'default');
+
+      let payloadStr = '';
+      if (payload != null) {
+        try { payloadStr = JSON.stringify(payload); } catch { payloadStr = '[Object]'; }
+      }
+
+      const entry = document.createElement('div');
+      entry.innerHTML =
+        '<span class="ts">[' + ts + ']</span> ' +
+        '<span class="' + cssClass + '">' + (type || 'unknown') + '</span>' +
+        (origin ? ' <span class="src">(' + origin + ')</span>' : '') +
+        (payloadStr ? '<div class="payload">' + payloadStr + '</div>' : '');
+
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      // Mirror to browser console for full inspection
+      console.log('[Shoutbox Event]', type, payload);
+    }
+
+    // ── Send a command to both iframe instances ──
+    function sendCmd(type, payload) {
+      const msg = { source: 'web3-shoutbox-parent', type: type, payload: payload || {} };
+
+      const frameA = document.getElementById('frame-a');
+      if (frameA?.contentWindow) frameA.contentWindow.postMessage(msg, IFRAME_ORIGIN);
+
+      const frameB = document.getElementById('frame-b');
+      if (frameB?.contentWindow) frameB.contentWindow.postMessage(msg, IFRAME_ORIGIN);
+
+      logEvent('→ ' + type + ' (sent)', payload, 'parent');
+    }
+
+    // ── Apply configuration and reload iframes ──
+    function applyConfig() {
+      const base = document.getElementById('cfg-base').value.trim();
+      const params = new URLSearchParams();
+
+      const room = document.getElementById('cfg-room').value.trim();
+      if (room) params.set('room', room);
+      if (document.getElementById('cfg-dark').checked) params.set('theme', 'dark');
+      if (document.getElementById('cfg-compact').checked) params.set('compact', 'true');
+      if (!document.getElementById('cfg-presence').checked) params.set('showPresence', 'false');
+
+      const maxH = document.getElementById('cfg-maxHeight').value;
+      if (maxH) params.set('maxHeight', maxH);
+
+      const qs = params.toString();
+      const src = qs ? base + '?' + qs : base;
+      const height = maxH || 600;
+
+      // Reload iframe A
+      const frameA = document.getElementById('frame-a');
+      frameA.src = src;
+      frameA.style.height = height + 'px';
+
+      // Show/hide iframe B
+      const dual = document.getElementById('cfg-dual').checked;
+      const colB = document.getElementById('col-b');
+      colB.style.display = dual ? '' : 'none';
+      if (dual) {
+        const frameB = document.getElementById('frame-b');
+        frameB.src = src;
+        frameB.style.height = height + 'px';
+      }
+
+      logEvent('config-applied', { src: src, dual: dual }, 'parent');
+    }
+
+    function clearLog() {
+      logEl.innerHTML = '';
+      eventCount = 0;
+      document.getElementById('event-count').textContent = '0 events';
+    }
+
+    function toggleAutoResize() {
+      autoResize = !autoResize;
+      logEvent('auto-resize ' + (autoResize ? 'enabled' : 'disabled'), null, 'parent');
+    }
+
+    // ── Initial log entry ──
+    logEvent('page-loaded', { message: 'Waiting for iframe events…' }, 'parent');
+  </script>
+</body>
+</html>
