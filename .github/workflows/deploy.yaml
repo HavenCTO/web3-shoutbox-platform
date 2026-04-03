@@ -1,0 +1,71 @@
+name: Deploy to Orbiter
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Check if API key exists
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.ORBITER_API_KEY }}" ]; then
+            echo "🚨 ORBITER_API_KEY not found ! Please follow these steps:"
+            echo ""
+            echo "1. Go to https://app.orbiter.host/api-keys"
+            echo "2. Generate a new API key"
+            echo "3. Go to https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "4. Click 'New repository secret'"
+            echo "5. Name: ORBITER_API_KEY"
+            echo "6. Value: Your API key from step 2"
+            echo "7. Click 'Add secret'"
+            echo ""
+            echo "Once done, re-run this workflow."
+            exit 1
+          fi
+
+      - name: Check if Site ID exists
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.ORBITER_SITE_ID }}" ]; then
+            echo "🚨 ORBITER_SITE_ID not found! Please add the secret."
+            exit 1
+          fi
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Vite app
+        env:
+            VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+            VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+            VITE_XMTP_ENV: ${{ secrets.VITE_XMTP_ENV }}
+        run: |
+          echo "Building Vite application..."
+          bun run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "./out" ]; then
+            echo "❌ Build failed: ./out directory not found"
+            exit 1
+          fi
+          echo "✅ Build successful: ./out directory exists"
+          ls -la ./out
+
+      - name: Deploy to Orbiter
+        env:
+          ORBITER_API_KEY: ${{ secrets.ORBITER_API_KEY }}
+          SOURCE: github-action
+        run: bunx orbiter-cli update ./out --siteId ${{ secrets.ORBITER_SITE_ID }}
