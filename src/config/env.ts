@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod'
+import { normalizeViteAppUrl } from './normalizeViteAppUrl'
 
 const envSchema = z.object({
   VITE_WALLETCONNECT_PROJECT_ID: z
@@ -35,7 +36,7 @@ function getEnv(): Env {
   const raw = {
     VITE_WALLETCONNECT_PROJECT_ID: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
     VITE_XMTP_ENV: import.meta.env.VITE_XMTP_ENV,
-    VITE_APP_URL: import.meta.env.VITE_APP_URL,
+    VITE_APP_URL: normalizeViteAppUrl(String(import.meta.env.VITE_APP_URL ?? '')),
     VITE_GUN_RELAY_PEERS: import.meta.env.VITE_GUN_RELAY_PEERS || undefined,
     VITE_SLIDING_WINDOW_MINUTES: import.meta.env.VITE_SLIDING_WINDOW_MINUTES || undefined,
   }
