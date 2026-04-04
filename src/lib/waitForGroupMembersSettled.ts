@@ -10,10 +10,10 @@ export interface WaitForGroupMembersSettledOptions {
 }
 
 export const DEFAULT_WAIT_MEMBERS_SETTLED_OPTIONS: WaitForGroupMembersSettledOptions = {
-  maxAttempts: 44,
-  pollIntervalMs: 450,
+  maxAttempts: 56,
+  pollIntervalMs: 500,
   requiredConsecutiveStable: 2,
-  minTotalWaitMs: 750,
+  minTotalWaitMs: 1200,
 }
 
 function fingerprintMemberInboxes(members: ReadonlyArray<{ inboxId: string }>): string {
@@ -53,10 +53,11 @@ export async function waitForGroupMembersSettled(
       )
 
       const requiredSorted = normalizeRequiredInboxIds(getRequiredInboxIds)
+      const minInboxes = Math.max(1, requiredSorted.length)
       const allRequiredPresent =
         requiredSorted.length === 0
           ? inboxSet.size >= 1
-          : requiredSorted.every((id) => inboxSet.has(id))
+          : requiredSorted.every((id) => inboxSet.has(id)) && inboxSet.size >= minInboxes
 
       if (!allRequiredPresent || fp.length === 0) {
         prevFingerprint = null

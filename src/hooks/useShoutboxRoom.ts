@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { hashUrl } from '@/lib/url-utils'
 import { usePresence } from '@/hooks/usePresence'
 import { useOnlineUsers } from '@/hooks/useOnlineUsers'
@@ -39,12 +39,20 @@ export function useShoutboxRoom(roomUrl: string) {
     isLoading,
     error: conversationError,
     messagingReady,
-  } = useXmtpConversation(activeGroupId)
+  } = useXmtpConversation(activeGroupId, conversationOptions)
 
   // Leader election state
   const { isLeader } = useLeaderElection()
   const onlineUsers = usePresenceStore((s) => s.onlineUsers)
   const windowEpoch = useChatStore((s) => s.windowEpoch)
+
+  const conversationOptions = useMemo(
+    () => ({
+      getRequiredInboxIds: (): readonly string[] =>
+        onlineUsers.filter((u) => u.isOnline).map((u) => u.inboxId),
+    }),
+    [onlineUsers],
+  )
 
   // Block sends during transition
   const sendMessage = useCallback(

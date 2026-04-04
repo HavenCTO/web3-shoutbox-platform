@@ -90,4 +90,22 @@ describe('waitForGroupMembersSettled', () => {
     advance()
     await expect(p).resolves.toBe(true)
   })
+
+  it('returns false when a required inbox is missing even if fingerprint is stable', async () => {
+    const { group, advance } = createGroupMock([
+      [{ inboxId: 'a' }, { inboxId: 'b' }],
+      [{ inboxId: 'a' }, { inboxId: 'b' }],
+    ])
+    const p = waitForGroupMembersSettled(
+      group,
+      () => ['a', 'b', 'c'],
+      () => false,
+      { ...fastOpts, maxAttempts: 4 },
+    )
+    for (let i = 0; i < 5; i++) {
+      await vi.advanceTimersByTimeAsync(0)
+      advance()
+    }
+    await expect(p).resolves.toBe(false)
+  })
 })

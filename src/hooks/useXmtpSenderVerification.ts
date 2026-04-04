@@ -75,19 +75,7 @@ export function useXmtpSenderVerification(
         next.set(key, match)
       }
 
-      if (!cancelled) {
-        setVerified(next)
-        console.info('[shoutbox:xmtp-verify] getInboxIdForIdentifier checks', {
-          pairCount: pairs.length,
-          results: pairs.map((p) => {
-            const k = verificationPairKey(p.senderInboxId, normalizeEthereumAddress(p.displayAddress))
-            return {
-              inboxId: `${p.senderInboxId.slice(0, 8)}…`,
-              match: next.get(k) === true,
-            }
-          }),
-        })
-      }
+      if (!cancelled) setVerified(next)
     }
 
     void run()

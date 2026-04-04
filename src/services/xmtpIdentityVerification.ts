@@ -44,8 +44,7 @@ export async function verifyEthereumAddressForInbox(
       identifierKind: IdentifierKind.Ethereum,
     })
     return resolved === senderInboxId
-  } catch (e) {
-    console.warn('[shoutbox:xmtp-verify] getInboxIdForIdentifier failed', e)
+  } catch {
     return false
   }
 }
