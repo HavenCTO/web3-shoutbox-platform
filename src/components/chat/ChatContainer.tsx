@@ -2,6 +2,11 @@ import { useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { buildInboxAddressLookup } from '@/lib/inbox-display'
+import {
+  CHAT_CONNECTING_BANNER_TEXT,
+  getChatStatusPresentation,
+  shouldShowChatConnectingBanner,
+} from '@/lib/chat-status'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { PresencePanel } from '@/components/presence/PresencePanel'
@@ -10,20 +15,6 @@ import { Loader2 } from 'lucide-react'
 import type { GroupState } from '@/types/group'
 import type { ShoutboxMessage } from '@/types/message'
 import type { OnlineUser } from '@/types/presence'
-
-function statusLabel(groupState: GroupState, onlineCount: number): string {
-  switch (groupState) {
-    case 'active':
-    case 'expiring':
-      return `Connected · ${onlineCount} online`
-    case 'transitioning':
-      return 'Switching sessions…'
-    case 'waiting-for-group':
-      return 'Setting up chat room…'
-    default:
-      return 'Connecting…'
-  }
-}
 
 export interface ChatContainerProps {
   roomUrl: string
@@ -34,12 +25,14 @@ export interface ChatContainerProps {
   windowEpoch: number
   isLoading: boolean
   isTransitioning: boolean
+  /** True when the local XMTP group is loaded and the message stream is active. */
+  messagingReady: boolean
   error: string | null
 }
 
 export function ChatContainer({
   messages, sendMessage, onlineUsers, groupState,
-  windowEpoch, isLoading, isTransitioning, error,
+  windowEpoch, isLoading, isTransitioning, messagingReady, error,
 }: ChatContainerProps) {
   const { isConnected, address } = useAccount()
   const { inboxId, status: xmtpStatus } = useXmtpClient()
@@ -51,13 +44,28 @@ export function ChatContainer({
 
   const isSettingUp = groupState === 'waiting-for-group' || groupState === 'idle'
 
+  const hasConversationError = Boolean(error)
+  const { dotClassName, statusText } = getChatStatusPresentation({
+    groupState,
+    onlineCount: onlineUsers.length,
+    hasConversationError,
+    isMessagingReady: messagingReady,
+    isLoadingConversation: isLoading,
+  })
+
+  const showConnectingBanner = shouldShowChatConnectingBanner({
+    groupState,
+    isMessagingReady: messagingReady,
+    hasConversationError,
+  })
+
   return (
     <div className="flex h-full flex-col bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
       {/* Status bar */}
       <div className="flex items-center justify-between border-b border-gray-700 bg-gray-800 px-2 py-1.5 sm:px-3 sm:py-2">
         <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 rounded-full flex-shrink-0 ${groupState === 'active' || groupState === 'expiring' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
-          <span className="text-[10px] text-gray-300 sm:text-xs">{statusLabel(groupState, onlineUsers.length)}</span>
+          <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dotClassName}`} />
+          <span className="text-[10px] text-gray-300 sm:text-xs">{statusText}</span>
         </div>
         {windowEpoch > 0 && (
           <span className="text-[10px] text-gray-500">#{windowEpoch}</span>
@@ -70,6 +78,12 @@ export function ChatContainer({
       {/* Error banner */}
       {error && (
         <div className="bg-red-900/40 px-2 py-1 text-[10px] text-red-300 sm:px-3 sm:py-1.5 sm:text-xs">{error}</div>
+      )}
+
+      {showConnectingBanner && (
+        <div className="border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 text-[10px] text-sky-200/95 sm:px-3 sm:py-2 sm:text-xs">
+          {CHAT_CONNECTING_BANNER_TEXT}
+        </div>
       )}
 
       {/* Skeleton for group setup */}
@@ -96,6 +110,7 @@ export function ChatContainer({
         isConnected={isConnected}
         xmtpReady={xmtpStatus === 'ready'}
         groupState={groupState}
+        messagingReady={messagingReady}
       />
     </div>
   )

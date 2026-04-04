@@ -9,20 +9,35 @@ interface MessageInputProps {
   isConnected: boolean
   xmtpReady: boolean
   groupState: GroupState
+  /** Local XMTP group + stream ready (session can be active before this). */
+  messagingReady: boolean
 }
 
-function getPlaceholder(isConnected: boolean, xmtpReady: boolean, groupState: GroupState): string {
+function getPlaceholder(
+  isConnected: boolean,
+  xmtpReady: boolean,
+  groupState: GroupState,
+  messagingReady: boolean,
+): string {
   if (!isConnected) return 'Connect wallet to chat'
   if (!xmtpReady) return 'Setting up messaging…'
   if (groupState !== 'active' && groupState !== 'expiring') return 'Waiting for session…'
+  if (!messagingReady) return 'Connecting to encrypted chat…'
   return 'Type a message…'
 }
 
-export function MessageInput({ onSend, isConnected, xmtpReady, groupState }: MessageInputProps) {
+export function MessageInput({
+  onSend,
+  isConnected,
+  xmtpReady,
+  groupState,
+  messagingReady,
+}: MessageInputProps) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
 
-  const canSend = isConnected && xmtpReady && (groupState === 'active' || groupState === 'expiring')
+  const sessionOpen = groupState === 'active' || groupState === 'expiring'
+  const canSend = isConnected && xmtpReady && sessionOpen && messagingReady
   const disabled = !canSend || sending
 
   const send = useCallback(async () => {
@@ -54,7 +69,7 @@ export function MessageInput({ onSend, isConnected, xmtpReady, groupState }: Mes
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={getPlaceholder(isConnected, xmtpReady, groupState)}
+        placeholder={getPlaceholder(isConnected, xmtpReady, groupState, messagingReady)}
         disabled={!canSend}
         rows={1}
         className={cn(

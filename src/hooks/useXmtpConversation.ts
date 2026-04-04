@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useChatStore } from '@/stores/chatStore'
+import {
+  DEFAULT_WAIT_FOR_GROUP_OPTIONS,
+  waitForGroupConversation,
+} from '@/lib/waitForGroupConversation'
 import {
   getGroupMessages,
   sendMessage as serviceSendMessage,
@@ -18,12 +22,14 @@ export function useXmtpConversation(groupId: string | null) {
   const { messages, isLoading, error, addMessage, setMessages, clearMessages, setLoading, setError } = useChatStore()
   const unsubRef = useRef<(() => void) | null>(null)
   const groupRef = useRef<Group | null>(null)
+  const [messagingReady, setMessagingReady] = useState(false)
 
   // Load messages and start stream when groupId changes
   useEffect(() => {
     unsubRef.current?.()
     unsubRef.current = null
     groupRef.current = null
+    setMessagingReady(false)
     clearMessages()
 
     if (!client || !groupId) return
@@ -35,10 +41,19 @@ export function useXmtpConversation(groupId: string | null) {
       setError(null)
 
       try {
-        const conversation = await client.conversations.getConversationById(groupId)
-        if (cancelled || !conversation) {
-          if (!conversation) setError('Group not found')
-          setLoading(false)
+        const conversation = await waitForGroupConversation(
+          client,
+          groupId,
+          DEFAULT_WAIT_FOR_GROUP_OPTIONS,
+          () => cancelled,
+        )
+        if (cancelled) return
+
+        if (!conversation) {
+          setError(
+            "Couldn't open this chat yet. Wait a few seconds or refresh the page.",
+          )
+          setMessagingReady(false)
           return
         }
 
@@ -52,16 +67,20 @@ export function useXmtpConversation(groupId: string | null) {
           setMessages(result.data)
         } else {
           setError(result.error.message)
+          setMessagingReady(false)
+          return
         }
 
         const { unsubscribe } = streamGroupMessages(group, (msg) => {
           if (!cancelled) addMessage(msg)
         })
         unsubRef.current = unsubscribe
+        if (!cancelled) setMessagingReady(true)
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e)
           setError(msg)
+          setMessagingReady(false)
           toast.error('Connection issue — retrying...')
         }
       } finally {
@@ -80,7 +99,10 @@ export function useXmtpConversation(groupId: string | null) {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!groupRef.current) return
+      if (!groupRef.current) {
+        toast.info('Chat is still connecting…')
+        return
+      }
       const result = await serviceSendMessage(groupRef.current, text)
       if (!result.ok) {
         const errMsg = result.error.code === 'XMTP_RATE_LIMIT'
@@ -93,5 +115,5 @@ export function useXmtpConversation(groupId: string | null) {
     [setError],
   )
 
-  return { messages, sendMessage, isLoading, error }
+  return { messages, sendMessage, isLoading, error, messagingReady }
 }

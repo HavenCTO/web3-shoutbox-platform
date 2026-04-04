@@ -33,7 +33,13 @@ export function useShoutboxRoom(roomUrl: string) {
   const { activeGroupId, groupState, currentWindow, error: groupError } = useGroupLifecycle(roomKey)
 
   // Conversation: load messages + stream for the active group
-  const { messages, sendMessage: rawSendMessage, isLoading, error: conversationError } = useXmtpConversation(activeGroupId)
+  const {
+    messages,
+    sendMessage: rawSendMessage,
+    isLoading,
+    error: conversationError,
+    messagingReady,
+  } = useXmtpConversation(activeGroupId)
 
   // Leader election state
   const { isLeader } = useLeaderElection()
@@ -63,6 +69,7 @@ export function useShoutboxRoom(roomUrl: string) {
     isLeader,
     isLoading,
     isTransitioning,
+    messagingReady,
     error: groupError ?? conversationError ?? null,
   }
 }

@@ -125,6 +125,7 @@ export function EmbedShoutboxPage() {
           windowEpoch={room.windowEpoch}
           isLoading={room.isLoading}
           isTransitioning={room.isTransitioning}
+          messagingReady={room.messagingReady}
           error={room.error}
         />
       </div>
