@@ -11,6 +11,11 @@ describe('isLikelySecretReuseError', () => {
     expect(isLikelySecretReuseError('SecretReuseError: bad')).toBe(true)
     expect(isLikelySecretReuseError('secret reuse detected')).toBe(true)
     expect(isLikelySecretReuseError('Some reuse error occurred')).toBe(true)
+    expect(
+      isLikelySecretReuseError(
+        'openmls::framing::private_message_in: Ciphertext generation out of bounds 0',
+      ),
+    ).toBe(true)
   })
 
   it('returns false for unrelated text', () => {

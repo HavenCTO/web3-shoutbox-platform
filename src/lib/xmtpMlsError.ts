@@ -9,7 +9,9 @@ export function isLikelySecretReuseError(message: string): boolean {
   return (
     m.includes('secretreuse') ||
     m.includes('secret reuse') ||
-    m.includes('reuse error')
+    m.includes('reuse error') ||
+    // OpenMLS / XMTP WASM: app message key generation invalid — often logged with SecretReuseError
+    m.includes('ciphertext generation out of bounds')
   )
 }
 
