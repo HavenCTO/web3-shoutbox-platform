@@ -51,6 +51,7 @@ jobs:
             VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
             VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
             VITE_XMTP_ENV: ${{ secrets.VITE_XMTP_ENV }}
+            VITE_GUN_RELAY_PEERS: ${{ secrets.VITE_GUN_RELAY_PEERS }}
         run: |
           echo "Building Vite application..."
           bun run build
