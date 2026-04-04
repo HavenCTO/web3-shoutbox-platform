@@ -73,7 +73,7 @@ export function ChatContainer({
       </div>
 
       {/* Presence — collapsed to count on narrow, expandable */}
-      <PresencePanel onlineUsers={onlineUsers} />
+      <PresencePanel onlineUsers={onlineUsers} currentInboxId={inboxId} />
 
       {/* Error banner */}
       {error && (

@@ -6,9 +6,15 @@ import type { OnlineUser } from '@/types/presence'
 interface PresencePanelProps {
   onlineUsers?: OnlineUser[]
   isLoading?: boolean
+  /** When set, that user’s row shows “ (you)” after their address. */
+  currentInboxId?: string | null
 }
 
-export function PresencePanel({ onlineUsers: propUsers, isLoading }: PresencePanelProps) {
+export function PresencePanel({
+  onlineUsers: propUsers,
+  isLoading,
+  currentInboxId,
+}: PresencePanelProps) {
   const storeUsers = usePresenceStore((s) => s.onlineUsers)
   const users = propUsers ?? storeUsers
   const count = users.length
@@ -31,12 +37,15 @@ export function PresencePanel({ onlineUsers: propUsers, isLoading }: PresencePan
       </summary>
       <div className="px-2 pb-2 sm:px-3">
         {count === 0 ? (
-          <p className="text-xs text-gray-500">No one else here yet</p>
+          <p className="text-xs text-gray-500">No one online yet</p>
         ) : (
           <ul className="space-y-1">
             {users.map((user) => (
               <li key={user.inboxId} className="animate-slide-in">
-                <UserAvatar address={user.address} />
+                <UserAvatar
+                  address={user.address}
+                  suffix={currentInboxId && user.inboxId === currentInboxId ? ' (you)' : undefined}
+                />
               </li>
             ))}
           </ul>

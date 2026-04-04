@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useGun } from '@/hooks/useGun'
-import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { usePresenceStore } from '@/stores/presenceStore'
 import { subscribeToPresence, type GunPresenceData } from '@/lib/gun-presence'
 import { getOnlineUsers } from '@/services/presenceService'
@@ -13,7 +12,6 @@ const CLEANUP_INTERVAL_MS = 10_000
  */
 export function useOnlineUsers(roomKey: string | null): void {
   const gun = useGun()
-  const { inboxId } = useXmtpClient()
   const setOnlineUsers = usePresenceStore((s) => s.setOnlineUsers)
   const recordsRef = useRef(new Map<string, GunPresenceData>())
 
@@ -28,8 +26,7 @@ export function useOnlineUsers(roomKey: string | null): void {
 
     const pushUpdate = () => {
       const all = getOnlineUsers(records)
-      const filtered = inboxId ? all.filter((u) => u.inboxId !== inboxId) : all
-      setOnlineUsers(filtered)
+      setOnlineUsers(all)
     }
 
     const unsub = subscribeToPresence(gun, roomKey, (data, key) => {
@@ -48,5 +45,5 @@ export function useOnlineUsers(roomKey: string | null): void {
       records.clear()
       setOnlineUsers([])
     }
-  }, [roomKey, inboxId, gun, setOnlineUsers])
+  }, [roomKey, gun, setOnlineUsers])
 }
