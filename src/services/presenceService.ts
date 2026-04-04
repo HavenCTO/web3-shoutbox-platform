@@ -123,7 +123,8 @@ export function getOnlineUsers(
       })
     }
   }
-  return users.sort((a, b) => b.lastSeen - a.lastSeen)
+  // Stable order by inbox id — sorting by lastSeen caused the list to reshuffle on every heartbeat.
+  return users.sort((a, b) => a.inboxId.localeCompare(b.inboxId))
 }
 
 /**
