@@ -1,4 +1,3 @@
-import { BadgeCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/presence/UserAvatar'
 import type { ShoutboxMessage } from '@/types/message'
@@ -21,9 +20,6 @@ function formatTimestamp(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-const VERIFIED_TITLE =
-  'This address is registered to this sender’s XMTP inbox (verified via XMTP, not presence).'
-
 export function MessageBubble({
   message,
   isMine,
@@ -40,33 +36,22 @@ export function MessageBubble({
       !showSenderHeader && 'mt-0.5',
     )}>
       {showSenderHeader && isMine && (
-        <div className="flex items-center gap-1 px-1">
-          <span className="text-[10px] font-medium text-gray-400">You</span>
-          {showVerified && (
-            <span
-              className="inline-flex shrink-0 text-sky-400"
-              title={VERIFIED_TITLE}
-              role="img"
-              aria-label={VERIFIED_TITLE}
-            >
-              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
-            </span>
-          )}
+        <div className="px-1">
+          <UserAvatar
+            address={senderAddressResolved}
+            showOnlineIndicator={false}
+            suffix=" (you)"
+            verifiedByXmtp={showVerified}
+          />
         </div>
       )}
       {showSenderHeader && !isMine && (
-        <div className="flex items-center gap-1 min-w-0">
-          <UserAvatar address={senderAddressResolved} showOnlineIndicator={false} />
-          {showVerified && (
-            <span
-              className="inline-flex shrink-0 text-sky-400"
-              title={VERIFIED_TITLE}
-              role="img"
-              aria-label={VERIFIED_TITLE}
-            >
-              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
-            </span>
-          )}
+        <div className="min-w-0">
+          <UserAvatar
+            address={senderAddressResolved}
+            showOnlineIndicator={false}
+            verifiedByXmtp={showVerified}
+          />
         </div>
       )}
       <div
