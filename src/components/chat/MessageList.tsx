@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { ArrowDown, Loader2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolveSenderAddressForDisplay } from '@/lib/inbox-display'
+import { useXmtpClient } from '@/hooks/useXmtpClient'
+import { useXmtpSenderVerification } from '@/hooks/useXmtpSenderVerification'
 import { MessageBubble } from '@/components/chat/MessageBubble'
 import { MessageSkeleton } from '@/components/ui/Skeleton'
 import type { ShoutboxMessage } from '@/types/message'
@@ -24,6 +26,10 @@ export function MessageList({
   isTransitioning,
   windowEpoch,
 }: MessageListProps) {
+  const { client } = useXmtpClient()
+  const senderInboxIds = useMemo(() => messages.map((m) => m.senderInboxId), [messages])
+  const { isAddressVerifiedForSender } = useXmtpSenderVerification(client, senderInboxIds)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
@@ -96,6 +102,9 @@ export function MessageList({
           const prev = i > 0 ? messages[i - 1] : null
           const showSenderHeader = !prev || prev.senderInboxId !== msg.senderInboxId
           const senderAddressResolved = resolveSenderAddressForDisplay(msg.senderInboxId, inboxToAddress)
+          const addressVerifiedByXmtp =
+            showSenderHeader &&
+            isAddressVerifiedForSender(msg.senderInboxId, senderAddressResolved)
           return (
             <MessageBubble
               key={msg.id}
@@ -103,6 +112,7 @@ export function MessageList({
               isMine={isMine}
               senderAddressResolved={senderAddressResolved}
               showSenderHeader={showSenderHeader}
+              addressVerifiedByXmtp={addressVerifiedByXmtp}
             />
           )
         })}

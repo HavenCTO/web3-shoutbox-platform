@@ -1,3 +1,4 @@
+import { BadgeCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/presence/UserAvatar'
 import type { ShoutboxMessage } from '@/types/message'
@@ -9,6 +10,8 @@ interface MessageBubbleProps {
   senderAddressResolved: string
   /** False when the previous message is from the same sender (compact run). */
   showSenderHeader: boolean
+  /** Displayed address matches XMTP-registered identifiers for this sender inbox. */
+  addressVerifiedByXmtp?: boolean
 }
 
 function formatTimestamp(ts: number): string {
@@ -18,7 +21,18 @@ function formatTimestamp(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export function MessageBubble({ message, isMine, senderAddressResolved, showSenderHeader }: MessageBubbleProps) {
+const VERIFIED_TITLE =
+  'This address is registered to this sender’s XMTP inbox (verified via XMTP, not presence).'
+
+export function MessageBubble({
+  message,
+  isMine,
+  senderAddressResolved,
+  showSenderHeader,
+  addressVerifiedByXmtp = false,
+}: MessageBubbleProps) {
+  const showVerified = showSenderHeader && addressVerifiedByXmtp
+
   return (
     <div className={cn(
       'animate-fade-in-up flex flex-col gap-1 max-w-[85%] sm:max-w-[80%]',
@@ -26,10 +40,28 @@ export function MessageBubble({ message, isMine, senderAddressResolved, showSend
       !showSenderHeader && 'mt-0.5',
     )}>
       {showSenderHeader && isMine && (
-        <span className="text-[10px] font-medium text-gray-400 px-1">You</span>
+        <div className="flex items-center gap-1 px-1">
+          <span className="text-[10px] font-medium text-gray-400">You</span>
+          {showVerified && (
+            <BadgeCheck
+              className="h-3.5 w-3.5 shrink-0 text-sky-400"
+              aria-hidden
+              title={VERIFIED_TITLE}
+            />
+          )}
+        </div>
       )}
       {showSenderHeader && !isMine && (
-        <UserAvatar address={senderAddressResolved} showOnlineIndicator={false} />
+        <div className="flex items-center gap-1 min-w-0">
+          <UserAvatar address={senderAddressResolved} showOnlineIndicator={false} />
+          {showVerified && (
+            <BadgeCheck
+              className="h-3.5 w-3.5 shrink-0 text-sky-400"
+              aria-hidden
+              title={VERIFIED_TITLE}
+            />
+          )}
+        </div>
       )}
       <div
         className={cn(
