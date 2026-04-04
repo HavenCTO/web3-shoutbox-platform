@@ -32,6 +32,15 @@ export function useShoutboxRoom(roomUrl: string) {
   // Group lifecycle with sliding window
   const { activeGroupId, groupState, currentWindow, error: groupError } = useGroupLifecycle(roomKey)
 
+  const onlineUsers = usePresenceStore((s) => s.onlineUsers)
+  const conversationOptions = useMemo(
+    () => ({
+      getRequiredInboxIds: (): readonly string[] =>
+        onlineUsers.filter((u) => u.isOnline).map((u) => u.inboxId),
+    }),
+    [onlineUsers],
+  )
+
   // Conversation: load messages + stream for the active group
   const {
     messages,
@@ -43,16 +52,7 @@ export function useShoutboxRoom(roomUrl: string) {
 
   // Leader election state
   const { isLeader } = useLeaderElection()
-  const onlineUsers = usePresenceStore((s) => s.onlineUsers)
   const windowEpoch = useChatStore((s) => s.windowEpoch)
-
-  const conversationOptions = useMemo(
-    () => ({
-      getRequiredInboxIds: (): readonly string[] =>
-        onlineUsers.filter((u) => u.isOnline).map((u) => u.inboxId),
-    }),
-    [onlineUsers],
-  )
 
   // Block sends during transition
   const sendMessage = useCallback(
