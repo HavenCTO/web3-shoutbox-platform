@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { ArrowDown, Loader2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { resolveSenderAddressForDisplay } from '@/lib/inbox-display'
 import { MessageBubble } from '@/components/chat/MessageBubble'
 import { MessageSkeleton } from '@/components/ui/Skeleton'
 import type { ShoutboxMessage } from '@/types/message'
@@ -8,12 +9,21 @@ import type { ShoutboxMessage } from '@/types/message'
 interface MessageListProps {
   messages: ShoutboxMessage[]
   currentInboxId: string | null
+  /** Maps XMTP inbox id → wallet address (from presence + local wallet). */
+  inboxToAddress: ReadonlyMap<string, string>
   isLoading: boolean
   isTransitioning: boolean
   windowEpoch: number
 }
 
-export function MessageList({ messages, currentInboxId, isLoading, isTransitioning, windowEpoch }: MessageListProps) {
+export function MessageList({
+  messages,
+  currentInboxId,
+  inboxToAddress,
+  isLoading,
+  isTransitioning,
+  windowEpoch,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [showScrollBtn, setShowScrollBtn] = useState(false)
@@ -81,9 +91,21 @@ export function MessageList({ messages, currentInboxId, isLoading, isTransitioni
           </div>
         )}
 
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} isMine={msg.senderInboxId === currentInboxId} />
-        ))}
+        {messages.map((msg, i) => {
+          const isMine = msg.senderInboxId === currentInboxId
+          const prev = i > 0 ? messages[i - 1] : null
+          const showSenderHeader = !prev || prev.senderInboxId !== msg.senderInboxId
+          const senderAddressResolved = resolveSenderAddressForDisplay(msg.senderInboxId, inboxToAddress)
+          return (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              isMine={isMine}
+              senderAddressResolved={senderAddressResolved}
+              showSenderHeader={showSenderHeader}
+            />
+          )
+        })}
         <div ref={bottomRef} />
       </div>
 

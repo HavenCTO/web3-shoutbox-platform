@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
+import { buildInboxAddressLookup } from '@/lib/inbox-display'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { PresencePanel } from '@/components/presence/PresencePanel'
@@ -39,8 +41,13 @@ export function ChatContainer({
   messages, sendMessage, onlineUsers, groupState,
   windowEpoch, isLoading, isTransitioning, error,
 }: ChatContainerProps) {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { inboxId, status: xmtpStatus } = useXmtpClient()
+
+  const inboxToAddress = useMemo(
+    () => buildInboxAddressLookup(onlineUsers, inboxId, address ?? null),
+    [onlineUsers, inboxId, address],
+  )
 
   const isSettingUp = groupState === 'waiting-for-group' || groupState === 'idle'
 
@@ -76,6 +83,7 @@ export function ChatContainer({
         <MessageList
           messages={messages}
           currentInboxId={inboxId}
+          inboxToAddress={inboxToAddress}
           isLoading={isLoading}
           isTransitioning={isTransitioning}
           windowEpoch={windowEpoch}

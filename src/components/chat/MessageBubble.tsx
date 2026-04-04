@@ -5,6 +5,10 @@ import type { ShoutboxMessage } from '@/types/message'
 interface MessageBubbleProps {
   message: ShoutboxMessage
   isMine: boolean
+  /** Wallet address (or inbox fallback) for avatars and labels. */
+  senderAddressResolved: string
+  /** False when the previous message is from the same sender (compact run). */
+  showSenderHeader: boolean
 }
 
 function formatTimestamp(ts: number): string {
@@ -14,14 +18,18 @@ function formatTimestamp(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export function MessageBubble({ message, isMine }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, senderAddressResolved, showSenderHeader }: MessageBubbleProps) {
   return (
     <div className={cn(
       'animate-fade-in-up flex flex-col gap-1 max-w-[85%] sm:max-w-[80%]',
       isMine ? 'ml-auto items-end' : 'mr-auto items-start',
+      !showSenderHeader && 'mt-0.5',
     )}>
-      {!isMine && (
-        <UserAvatar address={message.senderAddress} showOnlineIndicator={false} />
+      {showSenderHeader && isMine && (
+        <span className="text-[10px] font-medium text-gray-400 px-1">You</span>
+      )}
+      {showSenderHeader && !isMine && (
+        <UserAvatar address={senderAddressResolved} showOnlineIndicator={false} />
       )}
       <div
         className={cn(
