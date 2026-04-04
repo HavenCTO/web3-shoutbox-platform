@@ -15,6 +15,7 @@ import {
   calculateNextEpoch,
 } from '@/services/groupLifecycleService'
 import { subscribeToGroup } from '@/lib/group-lifecycle'
+import { teardownActiveGroupForWindowTransition } from '@/lib/windowTransitionTeardown'
 
 const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 5
 const LEADER_FAILOVER_TIMEOUT_MS = 15_000
@@ -68,6 +69,10 @@ export function useGroupLifecycle(roomKey: string | null) {
       const msUntilExpiring = msUntilExpiry - TRANSITION_BUFFER_MS
 
       if (msUntilExpiry <= 0) {
+        teardownActiveGroupForWindowTransition({
+          setActiveGroupId,
+          setActiveGroup,
+        })
         setGroupState('transitioning')
         return
       }
@@ -81,6 +86,10 @@ export function useGroupLifecycle(roomKey: string | null) {
       }
 
       expireTimerRef.current = setTimeout(() => {
+        teardownActiveGroupForWindowTransition({
+          setActiveGroupId,
+          setActiveGroup,
+        })
         setGroupState('transitioning')
       }, msUntilExpiry)
     },

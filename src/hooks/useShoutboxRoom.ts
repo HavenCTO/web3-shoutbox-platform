@@ -48,6 +48,11 @@ export function useShoutboxRoom(roomUrl: string) {
     isLoading,
     error: conversationError,
     messagingReady,
+    showResyncCta: conversationShowResync,
+    showInitRetryCta: conversationShowInitRetry,
+    retryConversationInit,
+    resyncConversation,
+    isResyncing,
   } = useXmtpConversation(activeGroupId, conversationOptions)
 
   // Leader election state
@@ -65,6 +70,9 @@ export function useShoutboxRoom(roomUrl: string) {
 
   const isTransitioning = groupState === 'transitioning'
 
+  const showResyncCta = conversationShowResync && !groupError
+  const showInitRetryCta = conversationShowInitRetry && !groupError
+
   return {
     roomKey,
     messages,
@@ -79,5 +87,10 @@ export function useShoutboxRoom(roomUrl: string) {
     isTransitioning,
     messagingReady,
     error: groupError ?? conversationError ?? null,
+    showResyncCta,
+    showInitRetryCta,
+    retryConversationInit,
+    resyncConversation,
+    isResyncing,
   }
 }

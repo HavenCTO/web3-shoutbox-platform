@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useGun } from '@/hooks/useGun'
 import { usePresenceStore } from '@/stores/presenceStore'
 import { subscribeToPresence, type GunPresenceData } from '@/lib/gun-presence'
+import { createRafBatchScheduler } from '@/lib/rafBatchScheduler'
 import { getOnlineUsers } from '@/services/presenceService'
 
 const CLEANUP_INTERVAL_MS = 10_000
@@ -24,22 +25,25 @@ export function useOnlineUsers(roomKey: string | null): void {
     const records = recordsRef.current
     records.clear()
 
-    const pushUpdate = () => {
+    const pushUpdate = (): void => {
       const all = getOnlineUsers(records)
       setOnlineUsers(all)
     }
+
+    const batcher = createRafBatchScheduler(pushUpdate)
 
     const unsub = subscribeToPresence(gun, roomKey, (data, key) => {
       if (data) {
         records.set(key, data)
       }
-      pushUpdate()
+      batcher.schedule()
     })
 
     // Periodic cleanup — removes stale users who haven't sent a heartbeat
-    const cleanupTimer = setInterval(pushUpdate, CLEANUP_INTERVAL_MS)
+    const cleanupTimer = setInterval(() => batcher.schedule(), CLEANUP_INTERVAL_MS)
 
     return () => {
+      batcher.cancel()
       unsub()
       clearInterval(cleanupTimer)
       records.clear()

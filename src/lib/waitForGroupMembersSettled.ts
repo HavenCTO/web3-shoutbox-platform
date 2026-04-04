@@ -1,4 +1,5 @@
 import type { Group } from '@xmtp/browser-sdk'
+import { MEMBER_SETTLE_MAX_WAIT_MS } from '@/hooks/xmtpConversationConstants'
 import { sleep } from '@/lib/waitForGroupConversation'
 
 export interface WaitForGroupMembersSettledOptions {
@@ -7,6 +8,8 @@ export interface WaitForGroupMembersSettledOptions {
   requiredConsecutiveStable: number
   /** Avoid treating the creator-only snapshot as final before add-member commits land. */
   minTotalWaitMs: number
+  /** Stop polling after this duration even if `maxAttempts` is not reached. */
+  maxTotalWaitMs: number
 }
 
 export const DEFAULT_WAIT_MEMBERS_SETTLED_OPTIONS: WaitForGroupMembersSettledOptions = {
@@ -14,7 +17,12 @@ export const DEFAULT_WAIT_MEMBERS_SETTLED_OPTIONS: WaitForGroupMembersSettledOpt
   pollIntervalMs: 500,
   requiredConsecutiveStable: 2,
   minTotalWaitMs: 1200,
+  maxTotalWaitMs: MEMBER_SETTLE_MAX_WAIT_MS,
 }
+
+export type WaitForGroupMembersSettledResult =
+  | { ok: true }
+  | { ok: false; reason: 'cancelled' | 'timeout' | 'sync_error' }
 
 function fingerprintMemberInboxes(members: ReadonlyArray<{ inboxId: string }>): string {
   const ids = [...new Set(members.map((m) => m.inboxId).filter(Boolean))]
@@ -24,6 +32,17 @@ function fingerprintMemberInboxes(members: ReadonlyArray<{ inboxId: string }>): 
 function normalizeRequiredInboxIds(getRequired: () => readonly string[]): string[] {
   const raw = getRequired()
   return [...new Set(raw.map((id) => id.trim()).filter(Boolean))].sort()
+}
+
+function logDevRosterPresenceMismatch(params: {
+  requiredInboxCount: number
+  uniqueMemberInboxCount: number
+}): void {
+  if (!import.meta.env.DEV) return
+  console.debug(
+    '[waitForGroupMembersSettled] roster vs presence (last attempt before fail)',
+    params,
+  )
 }
 
 /**
@@ -36,13 +55,15 @@ export async function waitForGroupMembersSettled(
   getRequiredInboxIds: () => readonly string[],
   shouldCancel: () => boolean,
   options: WaitForGroupMembersSettledOptions,
-): Promise<boolean> {
+): Promise<WaitForGroupMembersSettledResult> {
   const start = Date.now()
   let prevFingerprint: string | null = null
   let consecutiveStable = 0
+  let lastRequiredInboxCount = 0
+  let lastUniqueMemberInboxCount = 0
 
   for (let attempt = 0; attempt < options.maxAttempts; attempt++) {
-    if (shouldCancel()) return false
+    if (shouldCancel()) return { ok: false, reason: 'cancelled' }
 
     try {
       await group.sync()
@@ -53,6 +74,8 @@ export async function waitForGroupMembersSettled(
       )
 
       const requiredSorted = normalizeRequiredInboxIds(getRequiredInboxIds)
+      lastRequiredInboxCount = requiredSorted.length
+      lastUniqueMemberInboxCount = inboxSet.size
       const minInboxes = Math.max(1, requiredSorted.length)
       const allRequiredPresent =
         requiredSorted.length === 0
@@ -66,21 +89,36 @@ export async function waitForGroupMembersSettled(
         consecutiveStable += 1
         if (consecutiveStable >= options.requiredConsecutiveStable) {
           const elapsedOk = Date.now() - start >= options.minTotalWaitMs
-          if (elapsedOk) return true
+          if (elapsedOk) return { ok: true }
         }
       } else {
         prevFingerprint = fp
         consecutiveStable = 1
       }
     } catch {
-      return false
+      return { ok: false, reason: 'sync_error' }
+    }
+
+    if (shouldCancel()) return { ok: false, reason: 'cancelled' }
+
+    const elapsed = Date.now() - start
+    if (elapsed >= options.maxTotalWaitMs) {
+      logDevRosterPresenceMismatch({
+        requiredInboxCount: lastRequiredInboxCount,
+        uniqueMemberInboxCount: lastUniqueMemberInboxCount,
+      })
+      return { ok: false, reason: 'timeout' }
     }
 
     if (attempt < options.maxAttempts - 1) {
       await sleep(options.pollIntervalMs)
     }
-    if (shouldCancel()) return false
+    if (shouldCancel()) return { ok: false, reason: 'cancelled' }
   }
 
-  return false
+  logDevRosterPresenceMismatch({
+    requiredInboxCount: lastRequiredInboxCount,
+    uniqueMemberInboxCount: lastUniqueMemberInboxCount,
+  })
+  return { ok: false, reason: 'timeout' }
 }

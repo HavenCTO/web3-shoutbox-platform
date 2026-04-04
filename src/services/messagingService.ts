@@ -22,6 +22,8 @@ import {
   isGroupFullError,
   isMemberAlreadyAddedError,
 } from '@/types/errors'
+import { resolveXmtpMessagingErrorCode } from '@/lib/xmtpMlsError'
+import { tryEmitXmtpMlsDiagnostic } from '@/lib/xmtpMlsDiagnostics'
 import { type Result, ok, err } from '@/types/result'
 import type { ShoutboxMessage } from '@/types/message'
 import { retryWithBackoff } from '@/lib/retry'
@@ -85,17 +87,27 @@ export async function canMessage(
 }
 
 function wrapError(error: unknown, fallbackCode: string): MessagingError {
-  if (error instanceof MessagingError) return error
-  if (isRateLimitError(error)) {
-    return new MessagingError(
+  let wrapped: MessagingError
+  if (error instanceof MessagingError) {
+    const code = resolveXmtpMessagingErrorCode(error.message, error.code)
+    wrapped = code === error.code ? error : new MessagingError(error.message, code)
+  } else if (isRateLimitError(error)) {
+    wrapped = new MessagingError(
       'Rate limit exceeded. Please wait before retrying.',
       'XMTP_RATE_LIMIT',
     )
+  } else {
+    const message = error instanceof Error ? error.message : String(error)
+    wrapped = new MessagingError(message, resolveXmtpMessagingErrorCode(message, fallbackCode))
   }
-  return new MessagingError(
-    error instanceof Error ? error.message : String(error),
-    fallbackCode,
-  )
+  tryEmitXmtpMlsDiagnostic({
+    operation: fallbackCode,
+    error,
+    message: wrapped.message,
+    resolvedCode: wrapped.code,
+    extras: { wrapFallbackCode: fallbackCode },
+  })
+  return wrapped
 }
 
 /**
@@ -228,6 +240,17 @@ export async function getGroupMessages(
 /**
  * Subscribes to real-time incoming messages on a group.
  * Returns an unsubscribe function.
+ *
+ * **Single consumer:** only one active stream per `Group` should be used; call `unsubscribe`
+ * before opening another (the hook does this on `groupId` change).
+ *
+ * **Sync vs stream:** `disableSync: true` avoids the SDK running a network sync immediately
+ * before the stream starts, which can race with app-level `sync` + history loads and contribute
+ * to duplicate MLS work / `SecretReuseError`-class failures. The app already syncs before
+ * attaching the stream (`syncGroupForMessaging`, `getGroupMessages`, then this call).
+ *
+ * **Restarts:** the SDK may retry or restart the stream after transport failures; this layer
+ * dedupes by XMTP message `id` so the same logical message is not processed twice for UI state.
  */
 export function streamGroupMessages(
   group: Group,
@@ -235,25 +258,48 @@ export function streamGroupMessages(
 ): { unsubscribe: () => void } {
   let ended = false
   let endStream: (() => void) | null = null
+  const seenMessageIds = new Set<string>()
 
   const start = async () => {
     try {
       const stream = await group.stream({
+        disableSync: true,
         onError: (error) => {
           console.warn('[shoutbox] stream error:', error.message)
+          tryEmitXmtpMlsDiagnostic({
+            operation: 'stream.onError',
+            error,
+            message: error.message,
+            groupId: group.id,
+            extras: { streamDisableSync: true },
+          })
+        },
+        onFail: () => {
+          console.warn('[shoutbox] stream failed (SDK may retry/restart)')
         },
       })
       ;(async () => {
         for await (const message of stream) {
           if (ended) break
           if (typeof message.content === 'string') {
-            callback(toShoutboxMessage(message))
+            const mapped = toShoutboxMessage(message)
+            if (seenMessageIds.has(mapped.id)) continue
+            seenMessageIds.add(mapped.id)
+            callback(mapped)
           }
         }
       })()
       endStream = () => stream.end()
     } catch (error) {
       console.error('[shoutbox] stream start failed:', error)
+      const message = error instanceof Error ? error.message : String(error)
+      tryEmitXmtpMlsDiagnostic({
+        operation: 'stream.start',
+        error,
+        message,
+        groupId: group.id,
+        extras: { streamDisableSync: true },
+      })
     }
   }
 

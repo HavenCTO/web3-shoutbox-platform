@@ -1,3 +1,9 @@
+/** Conversation errors that may recover via client.conversations.sync + group.sync */
+export const XMTP_MLS_SYNC_LIKELY_CODE = 'XMTP_MLS_SYNC_LIKELY' as const
+
+/** MLS roster did not settle in time or member list could not be read; user may retry init. */
+export const MEMBER_SETTLE_RETRY_CODE = 'MEMBER_SETTLE_RETRY' as const
+
 export class MessagingError extends Error {
   constructor(
     message: string,

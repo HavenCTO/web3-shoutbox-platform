@@ -1,3 +1,6 @@
+/** Upper bound for polling until MLS roster matches presence (aligned with poll interval × max attempts). */
+export const MEMBER_SETTLE_MAX_WAIT_MS = 28_000
+
 /** After MLS roster is stable, lets welcome side-effects and identity updates drain before we read history. */
 export const POST_MEMBER_SETTLE_BUFFER_MS = 900
 

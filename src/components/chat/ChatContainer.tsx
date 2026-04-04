@@ -28,11 +28,23 @@ export interface ChatContainerProps {
   /** True when the local XMTP group is loaded and the message stream is active. */
   messagingReady: boolean
   error: string | null
+  /** When true with an error, show a Resync control for MLS/decrypt-style failures. */
+  showResyncCta?: boolean
+  onResyncConversation?: () => void | Promise<void>
+  isResyncing?: boolean
+  /** When true with an error, show Retry to re-run conversation init (e.g. member roster timeout). */
+  showInitRetryCta?: boolean
+  onRetryConversationInit?: () => void
 }
 
 export function ChatContainer({
   messages, sendMessage, onlineUsers, groupState,
   windowEpoch, isLoading, isTransitioning, messagingReady, error,
+  showResyncCta = false,
+  onResyncConversation,
+  isResyncing = false,
+  showInitRetryCta = false,
+  onRetryConversationInit,
 }: ChatContainerProps) {
   const { isConnected, address } = useAccount()
   const { inboxId, status: xmtpStatus } = useXmtpClient()
@@ -77,7 +89,28 @@ export function ChatContainer({
 
       {/* Error banner */}
       {error && (
-        <div className="bg-red-900/40 px-2 py-1 text-[10px] text-red-300 sm:px-3 sm:py-1.5 sm:text-xs">{error}</div>
+        <div className="flex flex-wrap items-center gap-2 bg-red-900/40 px-2 py-1 text-[10px] text-red-300 sm:px-3 sm:py-1.5 sm:text-xs">
+          <span className="min-w-0 flex-1">{error}</span>
+          {showInitRetryCta && onRetryConversationInit && (
+            <button
+              type="button"
+              onClick={onRetryConversationInit}
+              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[10px] font-medium text-red-100 hover:bg-red-900/60 sm:text-xs"
+            >
+              Retry
+            </button>
+          )}
+          {showResyncCta && onResyncConversation && (
+            <button
+              type="button"
+              onClick={() => void onResyncConversation()}
+              disabled={isResyncing}
+              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[10px] font-medium text-red-100 hover:bg-red-900/60 disabled:opacity-60 sm:text-xs"
+            >
+              {isResyncing ? 'Resyncing…' : 'Resync'}
+            </button>
+          )}
+        </div>
       )}
 
       {showConnectingBanner && (

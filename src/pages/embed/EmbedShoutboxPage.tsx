@@ -127,6 +127,11 @@ export function EmbedShoutboxPage() {
           isTransitioning={room.isTransitioning}
           messagingReady={room.messagingReady}
           error={room.error}
+          showResyncCta={room.showResyncCta}
+          onResyncConversation={room.resyncConversation}
+          isResyncing={room.isResyncing}
+          showInitRetryCta={room.showInitRetryCta}
+          onRetryConversationInit={room.retryConversationInit}
         />
       </div>
     </div>

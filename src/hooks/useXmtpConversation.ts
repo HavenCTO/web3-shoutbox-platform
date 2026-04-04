@@ -22,6 +22,10 @@ import {
   sendMessage as serviceSendMessage,
   streamGroupMessages,
 } from '@/services/messagingService'
+import { resyncXmtpConversation } from '@/services/resyncXmtpConversation'
+import { MEMBER_SETTLE_RETRY_CODE, XMTP_MLS_SYNC_LIKELY_CODE } from '@/types/errors'
+import { isLikelyXmtpMlsOrDecryptError } from '@/lib/xmtpMlsError'
+import { tryEmitXmtpMlsDiagnostic } from '@/lib/xmtpMlsDiagnostics'
 import type { Group } from '@xmtp/browser-sdk'
 
 export interface UseXmtpConversationOptions {
@@ -39,17 +43,37 @@ export function useXmtpConversation(
   groupId: string | null,
   options: UseXmtpConversationOptions = {},
 ) {
-  const { client } = useXmtpClient()
+  const { client, inboxId } = useXmtpClient()
   const getRequiredRef = useRef(options.getRequiredInboxIds ?? defaultRequiredInboxIds)
   getRequiredRef.current = options.getRequiredInboxIds ?? defaultRequiredInboxIds
-  const { messages, isLoading, error, addMessage, setMessages, clearMessages, setLoading, setError } = useChatStore()
+  const {
+    messages,
+    isLoading,
+    error,
+    errorCode,
+    addMessage,
+    setMessages,
+    clearMessages,
+    setLoading,
+    setError,
+  } = useChatStore()
   const unsubRef = useRef<(() => void) | null>(null)
   const groupRef = useRef<Group | null>(null)
   const groupIdRef = useRef<string | null>(null)
   const readyForGroupIdRef = useRef<string | null>(null)
   /** Group id for which sync + history + stream have completed; must match `groupId` to allow send. */
   const [readyForGroupId, setReadyForGroupId] = useState<string | null>(null)
+  const [isResyncing, setIsResyncing] = useState(false)
+  const [initRetryNonce, setInitRetryNonce] = useState(0)
   const messagingReady = isConversationReadyForGroup(groupId, readyForGroupId)
+
+  const showResyncCta =
+    Boolean(error) &&
+    (errorCode === XMTP_MLS_SYNC_LIKELY_CODE ||
+      errorCode === 'XMTP_RESYNC_FAILED' ||
+      isLikelyXmtpMlsOrDecryptError(error ?? ''))
+
+  const showInitRetryCta = Boolean(error) && errorCode === MEMBER_SETTLE_RETRY_CODE
 
   groupIdRef.current = groupId
 
@@ -102,17 +126,20 @@ export function useXmtpConversation(
           return
         }
 
-        const membersOk = await waitForGroupMembersSettled(
+        const membersResult = await waitForGroupMembersSettled(
           group,
           () => getRequiredRef.current(),
           () => cancelled,
           DEFAULT_WAIT_MEMBERS_SETTLED_OPTIONS,
         )
         if (cancelled) return
-        if (!membersOk) {
-          setError(
-            'Waiting for everyone to join encrypted chat… If this lasts more than a minute, refresh the page.',
-          )
+        if (!membersResult.ok) {
+          if (membersResult.reason === 'cancelled') return
+          const msg =
+            membersResult.reason === 'sync_error'
+              ? "Couldn't read the encrypted group roster. Tap to retry."
+              : 'Still joining everyone to encrypted chat. Tap to retry.'
+          setError(msg, MEMBER_SETTLE_RETRY_CODE)
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
           return
@@ -144,7 +171,7 @@ export function useXmtpConversation(
         if (result.ok) {
           setMessages(result.data)
         } else {
-          setError(result.error.message)
+          setError(result.error.message, result.error.code)
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
           return
@@ -171,7 +198,24 @@ export function useXmtpConversation(
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e)
-          setError(msg)
+          const resolvedInit = isLikelyXmtpMlsOrDecryptError(msg)
+            ? XMTP_MLS_SYNC_LIKELY_CODE
+            : null
+          tryEmitXmtpMlsDiagnostic({
+            operation: 'useXmtpConversation.init',
+            error: e,
+            message: msg,
+            resolvedCode: resolvedInit,
+            groupId,
+            inboxId,
+            extras: {
+              readyAfterStreamUnset: true,
+            },
+          })
+          setError(
+            msg,
+            resolvedInit,
+          )
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
           toast.error('Connection issue — retrying...')
@@ -188,7 +232,17 @@ export function useXmtpConversation(
       unsubRef.current?.()
       unsubRef.current = null
     }
-  }, [client, groupId, addMessage, setMessages, clearMessages, setLoading, setError])
+  }, [
+    client,
+    groupId,
+    inboxId,
+    initRetryNonce,
+    addMessage,
+    setMessages,
+    clearMessages,
+    setLoading,
+    setError,
+  ])
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -207,11 +261,50 @@ export function useXmtpConversation(
           ? 'Slow down — too many operations. Waiting...'
           : 'Message failed to send. Tap to retry.'
         toast.error(errMsg)
-        setError(result.error.message)
+        setError(result.error.message, result.error.code)
       }
     },
     [setError],
   )
 
-  return { messages, sendMessage, isLoading, error, messagingReady }
+  const retryConversationInit = useCallback(() => {
+    setInitRetryNonce((n) => n + 1)
+  }, [])
+
+  const resyncConversation = useCallback(async () => {
+    if (!client || !groupRef.current) {
+      toast.error('Chat is not ready to resync.')
+      return
+    }
+    setIsResyncing(true)
+    try {
+      const result = await resyncXmtpConversation(client, groupRef.current)
+      if (!result.ok) {
+        setError(result.error.message, result.error.code)
+        toast.error('Resync failed. Try again or refresh the page.')
+        return
+      }
+      const history = await getGroupMessages(groupRef.current)
+      if (history.ok) {
+        setMessages(history.data)
+      }
+      setError(null)
+      toast.success('Synced encryption state. Try sending again if needed.')
+    } finally {
+      setIsResyncing(false)
+    }
+  }, [client, setError, setMessages])
+
+  return {
+    messages,
+    sendMessage,
+    isLoading,
+    error,
+    messagingReady,
+    showResyncCta,
+    showInitRetryCta,
+    retryConversationInit,
+    resyncConversation,
+    isResyncing,
+  }
 }
