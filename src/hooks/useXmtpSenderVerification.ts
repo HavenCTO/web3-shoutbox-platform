@@ -77,7 +77,16 @@ export function useXmtpSenderVerification(
         if (cached) nextMap.set(id, cached.addresses)
       }
 
-      if (!cancelled) setAddressMap(nextMap)
+      if (!cancelled) {
+        setAddressMap(nextMap)
+        console.info('[shoutbox:xmtp-verify] UI verification map', {
+          inboxIds: [...nextMap.keys()],
+          addressCounts: [...nextMap.entries()].map(([id, set]) => ({
+            inboxId: id,
+            xmtpEthereumAddressCount: set.size,
+          })),
+        })
+      }
     }
 
     void run()

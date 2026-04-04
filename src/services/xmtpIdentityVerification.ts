@@ -73,13 +73,49 @@ export async function fetchInboxEthereumAddressMap(
   if (unique.length === 0) return result
 
   const prefs = getPreferences(client)
-  if (!prefs) return result
+  if (!prefs) {
+    console.warn(
+      '[shoutbox:xmtp-verify] client.preferences.fetchInboxStates is missing — verified badges disabled. Check @xmtp/browser-sdk version.',
+    )
+    return result
+  }
 
-  const rows = await prefs.fetchInboxStates(unique)
+  let rows: unknown[]
+  try {
+    rows = await prefs.fetchInboxStates(unique)
+  } catch (e) {
+    console.warn('[shoutbox:xmtp-verify] fetchInboxStates threw:', e)
+    throw e
+  }
+
+  if (!Array.isArray(rows)) {
+    console.warn('[shoutbox:xmtp-verify] fetchInboxStates returned non-array', rows)
+    return result
+  }
+
+  const summary: Array<{
+    inboxId: string
+    identityKinds: string[]
+    extractedEthereumAddresses: string[]
+  }> = []
+
   for (const raw of rows) {
     const state = raw as XmtpInboxStateRow
     if (!state?.inboxId) continue
-    result.set(state.inboxId, ethereumAddressesFromInboxState(state))
+    const extracted = ethereumAddressesFromInboxState(state)
+    result.set(state.inboxId, extracted)
+    summary.push({
+      inboxId: state.inboxId,
+      identityKinds: state.identities?.map((i) => i.kind) ?? [],
+      extractedEthereumAddresses: [...extracted],
+    })
   }
+
+  console.info('[shoutbox:xmtp-verify] fetchInboxStates', {
+    requestedInboxIds: unique,
+    responseRowCount: Array.isArray(rows) ? rows.length : 0,
+    summary,
+  })
+
   return result
 }
