@@ -43,11 +43,14 @@ export function MessageBubble({
         <div className="flex items-center gap-1 px-1">
           <span className="text-[10px] font-medium text-gray-400">You</span>
           {showVerified && (
-            <BadgeCheck
-              className="h-3.5 w-3.5 shrink-0 text-sky-400"
-              aria-hidden
+            <span
+              className="inline-flex shrink-0 text-sky-400"
               title={VERIFIED_TITLE}
-            />
+              role="img"
+              aria-label={VERIFIED_TITLE}
+            >
+              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+            </span>
           )}
         </div>
       )}
@@ -55,11 +58,14 @@ export function MessageBubble({
         <div className="flex items-center gap-1 min-w-0">
           <UserAvatar address={senderAddressResolved} showOnlineIndicator={false} />
           {showVerified && (
-            <BadgeCheck
-              className="h-3.5 w-3.5 shrink-0 text-sky-400"
-              aria-hidden
+            <span
+              className="inline-flex shrink-0 text-sky-400"
               title={VERIFIED_TITLE}
-            />
+              role="img"
+              aria-label={VERIFIED_TITLE}
+            >
+              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+            </span>
           )}
         </div>
       )}
