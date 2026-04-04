@@ -49,10 +49,10 @@ export function useShoutboxRoom(roomUrl: string) {
   // Block sends during transition
   const sendMessage = useCallback(
     async (text: string) => {
-      if (groupState === 'transitioning') return
+      if (groupState === 'transitioning' || !messagingReady) return
       return rawSendMessage(text)
     },
-    [groupState, rawSendMessage],
+    [groupState, messagingReady, rawSendMessage],
   )
 
   const isTransitioning = groupState === 'transitioning'

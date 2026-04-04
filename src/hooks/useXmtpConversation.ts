@@ -6,6 +6,7 @@ import {
   DEFAULT_WAIT_FOR_GROUP_OPTIONS,
   waitForGroupConversation,
 } from '@/lib/waitForGroupConversation'
+import { syncGroupForMessaging } from '@/lib/xmtpGroupSync'
 import {
   getGroupMessages,
   sendMessage as serviceSendMessage,
@@ -22,6 +23,7 @@ export function useXmtpConversation(groupId: string | null) {
   const { messages, isLoading, error, addMessage, setMessages, clearMessages, setLoading, setError } = useChatStore()
   const unsubRef = useRef<(() => void) | null>(null)
   const groupRef = useRef<Group | null>(null)
+  const messagingReadyRef = useRef(false)
   const [messagingReady, setMessagingReady] = useState(false)
 
   // Load messages and start stream when groupId changes
@@ -30,6 +32,7 @@ export function useXmtpConversation(groupId: string | null) {
     unsubRef.current = null
     groupRef.current = null
     setMessagingReady(false)
+    messagingReadyRef.current = false
     clearMessages()
 
     if (!client || !groupId) return
@@ -54,11 +57,23 @@ export function useXmtpConversation(groupId: string | null) {
             "Couldn't open this chat yet. Wait a few seconds or refresh the page.",
           )
           setMessagingReady(false)
+          messagingReadyRef.current = false
           return
         }
 
         const group = conversation as Group
         groupRef.current = group
+
+        const synced = await syncGroupForMessaging(group, () => cancelled)
+        if (cancelled) return
+        if (!synced) {
+          setError(
+            "Couldn't sync this chat yet. Wait a few seconds — the room may still be opening.",
+          )
+          setMessagingReady(false)
+          messagingReadyRef.current = false
+          return
+        }
 
         const result = await getGroupMessages(group)
         if (cancelled) return
@@ -68,6 +83,7 @@ export function useXmtpConversation(groupId: string | null) {
         } else {
           setError(result.error.message)
           setMessagingReady(false)
+          messagingReadyRef.current = false
           return
         }
 
@@ -75,12 +91,16 @@ export function useXmtpConversation(groupId: string | null) {
           if (!cancelled) addMessage(msg)
         })
         unsubRef.current = unsubscribe
-        if (!cancelled) setMessagingReady(true)
+        if (!cancelled) {
+          setMessagingReady(true)
+          messagingReadyRef.current = true
+        }
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e)
           setError(msg)
           setMessagingReady(false)
+          messagingReadyRef.current = false
           toast.error('Connection issue — retrying...')
         }
       } finally {
@@ -99,7 +119,7 @@ export function useXmtpConversation(groupId: string | null) {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!groupRef.current) {
+      if (!messagingReadyRef.current || !groupRef.current) {
         toast.info('Chat is still connecting…')
         return
       }
