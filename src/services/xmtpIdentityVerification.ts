@@ -161,7 +161,7 @@ export async function fetchInboxEthereumAddressMap(
       identityKinds: Array.isArray(identities)
         ? identities.map((i) => {
             if (!i || typeof i !== 'object') return '?'
-            const o = i as Record<string, unknown>
+            const o = i as unknown as Record<string, unknown>
             if (typeof o.kind === 'string') return o.kind
             if (o.identifierKind !== undefined) return String(o.identifierKind)
             return '?'
