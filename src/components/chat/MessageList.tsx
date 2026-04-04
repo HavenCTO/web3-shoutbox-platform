@@ -27,8 +27,7 @@ export function MessageList({
   windowEpoch,
 }: MessageListProps) {
   const { client } = useXmtpClient()
-  const senderInboxIds = useMemo(() => messages.map((m) => m.senderInboxId), [messages])
-  const { isAddressVerifiedForSender } = useXmtpSenderVerification(client, senderInboxIds)
+  const { isAddressVerifiedForSender } = useXmtpSenderVerification(client, messages, inboxToAddress)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)

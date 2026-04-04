@@ -1,90 +1,91 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { XmtpClient } from '@/lib/xmtp'
+import type { ShoutboxMessage } from '@/types/message'
+import { resolveSenderAddressForDisplay } from '@/lib/inbox-display'
 import {
-  fetchInboxEthereumAddressMap,
-  isDisplayAddressVerifiedByXmtp,
+  isLikelyEthereumAddress,
+  normalizeEthereumAddress,
+  verificationPairKey,
+  verifyEthereumAddressForInbox,
 } from '@/services/xmtpIdentityVerification'
 
-const CACHE_TTL_MS = 5 * 60 * 1000
-
-interface CacheEntry {
-  addresses: ReadonlySet<string>
-  expiresAt: number
-}
-
-function uniqueSortedInboxIds(senderInboxIds: readonly string[]): string[] {
-  const u = [...new Set(senderInboxIds.filter((id) => id.length > 0))]
-  u.sort()
-  return u
+function uniqueVerificationPairs(
+  messages: readonly ShoutboxMessage[],
+  inboxToAddress: ReadonlyMap<string, string>,
+): { senderInboxId: string; displayAddress: string }[] {
+  const seen = new Set<string>()
+  const out: { senderInboxId: string; displayAddress: string }[] = []
+  for (const m of messages) {
+    const displayAddress = resolveSenderAddressForDisplay(m.senderInboxId, inboxToAddress)
+    if (!isLikelyEthereumAddress(displayAddress)) continue
+    const key = verificationPairKey(m.senderInboxId, normalizeEthereumAddress(displayAddress))
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ senderInboxId: m.senderInboxId, displayAddress })
+  }
+  return out
 }
 
 /**
- * Fetches XMTP inbox ↔ Ethereum identifier bindings for message senders.
- * Used to show a verified badge when the displayed address matches XMTP identity (not Gun).
+ * Resolves whether each (sender inbox, displayed 0x address) pair matches XMTP’s address→inbox mapping.
  */
 export function useXmtpSenderVerification(
   client: XmtpClient | null,
-  senderInboxIds: readonly string[],
+  messages: readonly ShoutboxMessage[],
+  inboxToAddress: ReadonlyMap<string, string>,
 ): {
   isAddressVerifiedForSender: (senderInboxId: string, displayedAddress: string) => boolean
 } {
-  const [addressMap, setAddressMap] = useState<Map<string, ReadonlySet<string>>>(new Map())
-  const cacheRef = useRef<Map<string, CacheEntry>>(new Map())
+  const [verified, setVerified] = useState<Map<string, boolean>>(new Map())
+  const resultCacheRef = useRef<Map<string, boolean>>(new Map())
 
-  const idsFingerprint = useMemo(
-    () => uniqueSortedInboxIds(senderInboxIds).join('\0'),
-    [senderInboxIds],
+  const pairs = useMemo(
+    () => uniqueVerificationPairs(messages, inboxToAddress),
+    [messages, inboxToAddress],
+  )
+
+  const pairsKey = useMemo(
+    () =>
+      pairs
+        .map((p) => `${p.senderInboxId}:${normalizeEthereumAddress(p.displayAddress)}`)
+        .sort()
+        .join('|'),
+    [pairs],
   )
 
   useEffect(() => {
-    const ids = uniqueSortedInboxIds(senderInboxIds)
-    if (!client || ids.length === 0) {
-      setAddressMap(new Map())
+    if (!client || pairs.length === 0) {
+      setVerified(new Map())
       return
     }
 
     let cancelled = false
     const run = async () => {
-      const now = Date.now()
-      const toFetch: string[] = []
-      const nextMap = new Map<string, ReadonlySet<string>>()
+      const next = new Map<string, boolean>()
 
-      for (const id of ids) {
-        const cached = cacheRef.current.get(id)
-        if (cached && cached.expiresAt > now) {
-          nextMap.set(id, cached.addresses)
-        } else {
-          toFetch.push(id)
+      for (const { senderInboxId, displayAddress } of pairs) {
+        const key = verificationPairKey(senderInboxId, normalizeEthereumAddress(displayAddress))
+        const cached = resultCacheRef.current.get(key)
+        if (cached !== undefined) {
+          next.set(key, cached)
+          continue
         }
-      }
-
-      if (toFetch.length > 0) {
-        try {
-          const fresh = await fetchInboxEthereumAddressMap(client, toFetch)
-          for (const [inboxId, set] of fresh) {
-            cacheRef.current.set(inboxId, {
-              addresses: set,
-              expiresAt: now + CACHE_TTL_MS,
-            })
-          }
-        } catch (e) {
-          console.warn('[shoutbox] XMTP fetchInboxStates failed:', e)
-        }
-      }
-
-      for (const id of ids) {
-        const cached = cacheRef.current.get(id)
-        if (cached) nextMap.set(id, cached.addresses)
+        const match = await verifyEthereumAddressForInbox(senderInboxId, displayAddress)
+        resultCacheRef.current.set(key, match)
+        next.set(key, match)
       }
 
       if (!cancelled) {
-        setAddressMap(nextMap)
-        console.info('[shoutbox:xmtp-verify] UI verification map', {
-          inboxIds: [...nextMap.keys()],
-          addressCounts: [...nextMap.entries()].map(([id, set]) => ({
-            inboxId: id,
-            xmtpEthereumAddressCount: set.size,
-          })),
+        setVerified(next)
+        console.info('[shoutbox:xmtp-verify] getInboxIdForIdentifier checks', {
+          pairCount: pairs.length,
+          results: pairs.map((p) => {
+            const k = verificationPairKey(p.senderInboxId, normalizeEthereumAddress(p.displayAddress))
+            return {
+              inboxId: `${p.senderInboxId.slice(0, 8)}…`,
+              match: next.get(k) === true,
+            }
+          }),
         })
       }
     }
@@ -93,12 +94,15 @@ export function useXmtpSenderVerification(
     return () => {
       cancelled = true
     }
-  }, [client, idsFingerprint])
+  }, [client, pairsKey])
 
   const isAddressVerifiedForSender = useCallback(
-    (senderInboxId: string, displayedAddress: string) =>
-      isDisplayAddressVerifiedByXmtp(senderInboxId, displayedAddress, addressMap),
-    [addressMap],
+    (senderInboxId: string, displayedAddress: string) => {
+      if (!isLikelyEthereumAddress(displayedAddress)) return false
+      const key = verificationPairKey(senderInboxId, normalizeEthereumAddress(displayedAddress))
+      return verified.get(key) === true
+    },
+    [verified],
   )
 
   return { isAddressVerifiedForSender }
