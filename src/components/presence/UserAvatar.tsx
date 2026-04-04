@@ -1,12 +1,11 @@
 import { BadgeCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface UserAvatarProps {
   address: string
   showOnlineIndicator?: boolean
   /** Appended after the address, e.g. " (you)" */
   suffix?: string
-  /** XMTP identity match: badge appears on hover over the shortened address (and on tap/active for touch). */
+  /** XMTP identity match: sky checkmark shown before the shortened address. */
   verifiedByXmtp?: boolean
 }
 
@@ -24,7 +23,7 @@ export function UserAvatar({
   suffix,
   verifiedByXmtp = false,
 }: UserAvatarProps) {
-  const label = (
+  const addressText = (
     <span className="text-sm text-gray-300 font-mono truncate">
       {truncateAddress(address)}
       {suffix ? <span className="text-gray-500 font-sans">{suffix}</span> : null}
@@ -37,22 +36,15 @@ export function UserAvatar({
         <span className="inline-block h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
       )}
       {verifiedByXmtp ? (
-        <span
-          className="group inline-flex cursor-default items-center gap-1 rounded px-0.5 min-w-0 outline-none focus-visible:ring-1 focus-visible:ring-sky-500/60"
-          title={VERIFIED_TITLE}
-          tabIndex={0}
-        >
-          {label}
+        <span className="inline-flex min-w-0 items-center gap-1" title={VERIFIED_TITLE}>
           <BadgeCheck
-            className={cn(
-              'h-3.5 w-3.5 shrink-0 text-sky-400 transition-opacity duration-150',
-              'opacity-0 group-hover:opacity-100 group-active:opacity-100 group-focus-within:opacity-100',
-            )}
+            className="h-3.5 w-3.5 shrink-0 text-sky-400"
             aria-hidden
           />
+          {addressText}
         </span>
       ) : (
-        label
+        addressText
       )}
     </div>
   )

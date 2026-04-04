@@ -1,11 +1,14 @@
 /**
  * Resolve XMTP inbox states to Ethereum identifiers for sender verification.
- * Uses client.preferences.fetchInboxStates — not Gun presence.
+ * Uses Client.fetchInboxStates + createBackend (network) so identities are populated;
+ * preferences.fetchInboxStates alone often returns empty identities for remote inboxes.
  */
 
+import { Client, createBackend, IdentifierKind } from '@xmtp/browser-sdk'
+import { env } from '@/config/env'
 import type { XmtpClient } from '@/lib/xmtp'
 
-/** Shape returned by XMTP for each identity on an inbox (see XMTP manage-inboxes docs). */
+/** Doc / JSON sample shape */
 export interface XmtpInboxIdentityRow {
   kind: string
   identifier: string
@@ -27,14 +30,42 @@ export function normalizeEthereumAddress(s: string): string {
   return s.trim().toLowerCase()
 }
 
-/** Collects normalized 0x addresses from an inbox state (ETHEREUM kind only). */
-export function ethereumAddressesFromInboxState(state: XmtpInboxStateRow): Set<string> {
+/** True if this identity row is an Ethereum address per docs or WASM Identifier shape. */
+export function ethereumAddressFromIdentityRow(row: unknown): string | null {
+  if (!row || typeof row !== 'object') return null
+  const r = row as Record<string, unknown>
+  const id = typeof r.identifier === 'string' ? r.identifier.trim() : ''
+  if (!id) return null
+
+  // Docs: { kind: "ETHEREUM", identifier }
+  if (typeof r.kind === 'string' && r.kind.toUpperCase() === 'ETHEREUM') {
+    const n = normalizeEthereumAddress(id)
+    return isLikelyEthereumAddress(n) ? n : null
+  }
+
+  // WASM / SDK: { identifierKind: IdentifierKind.Ethereum, identifier }
+  const ik = r.identifierKind
+  const isEthKind =
+    ik === IdentifierKind.Ethereum ||
+    ik === 'Ethereum' ||
+    ik === 'ETHEREUM' ||
+    (typeof ik === 'number' && ik === IdentifierKind.Ethereum)
+
+  if (isEthKind) {
+    const n = normalizeEthereumAddress(id)
+    return isLikelyEthereumAddress(n) ? n : null
+  }
+
+  return null
+}
+
+export function ethereumAddressesFromInboxState(state: XmtpInboxStateRow | Record<string, unknown>): Set<string> {
   const out = new Set<string>()
-  for (const row of state.identities ?? []) {
-    const kind = row.kind?.toUpperCase() ?? ''
-    if (kind !== 'ETHEREUM' || !row.identifier) continue
-    const n = normalizeEthereumAddress(row.identifier)
-    if (isLikelyEthereumAddress(n)) out.add(n)
+  const identities = (state as { identities?: unknown }).identities
+  if (!Array.isArray(identities)) return out
+  for (const row of identities) {
+    const addr = ethereumAddressFromIdentityRow(row)
+    if (addr) out.add(addr)
   }
   return out
 }
@@ -61,6 +92,30 @@ function getPreferences(client: XmtpClient): PreferencesWithFetch | null {
   return null
 }
 
+async function fetchInboxStateRows(client: XmtpClient, inboxIds: string[]): Promise<unknown[]> {
+  const unique = [...new Set(inboxIds.filter((id) => id.length > 0))]
+  if (unique.length === 0) return []
+
+  try {
+    const backend = await createBackend({ env: env.VITE_XMTP_ENV })
+    const rows = await Client.fetchInboxStates(unique, backend)
+    if (Array.isArray(rows)) return rows
+    console.warn('[shoutbox:xmtp-verify] Client.fetchInboxStates did not return an array', rows)
+  } catch (e) {
+    console.warn('[shoutbox:xmtp-verify] Client.fetchInboxStates failed, trying preferences', e)
+  }
+
+  const prefs = getPreferences(client)
+  if (!prefs) {
+    console.warn(
+      '[shoutbox:xmtp-verify] No preferences.fetchInboxStates fallback — verified badges unavailable.',
+    )
+    return []
+  }
+
+  return prefs.fetchInboxStates(unique)
+}
+
 /**
  * Fetches inbox states from the XMTP network and maps inbox id → set of associated Ethereum addresses.
  */
@@ -72,24 +127,16 @@ export async function fetchInboxEthereumAddressMap(
   const unique = [...new Set(inboxIds.filter((id) => id.length > 0))]
   if (unique.length === 0) return result
 
-  const prefs = getPreferences(client)
-  if (!prefs) {
-    console.warn(
-      '[shoutbox:xmtp-verify] client.preferences.fetchInboxStates is missing — verified badges disabled. Check @xmtp/browser-sdk version.',
-    )
-    return result
-  }
-
   let rows: unknown[]
   try {
-    rows = await prefs.fetchInboxStates(unique)
+    rows = await fetchInboxStateRows(client, unique)
   } catch (e) {
-    console.warn('[shoutbox:xmtp-verify] fetchInboxStates threw:', e)
+    console.warn('[shoutbox:xmtp-verify] fetch inbox states threw:', e)
     throw e
   }
 
   if (!Array.isArray(rows)) {
-    console.warn('[shoutbox:xmtp-verify] fetchInboxStates returned non-array', rows)
+    console.warn('[shoutbox:xmtp-verify] inbox states returned non-array', rows)
     return result
   }
 
@@ -97,23 +144,44 @@ export async function fetchInboxEthereumAddressMap(
     inboxId: string
     identityKinds: string[]
     extractedEthereumAddresses: string[]
+    rawIdentitySample?: unknown
   }> = []
 
   for (const raw of rows) {
-    const state = raw as XmtpInboxStateRow
+    const state = raw as XmtpInboxStateRow & Record<string, unknown>
     if (!state?.inboxId) continue
     const extracted = ethereumAddressesFromInboxState(state)
     result.set(state.inboxId, extracted)
+
+    const identities = state.identities
+    const sample = Array.isArray(identities) && identities.length > 0 ? identities[0] : undefined
+
     summary.push({
       inboxId: state.inboxId,
-      identityKinds: state.identities?.map((i) => i.kind) ?? [],
+      identityKinds: Array.isArray(identities)
+        ? identities.map((i) => {
+            if (!i || typeof i !== 'object') return '?'
+            const o = i as Record<string, unknown>
+            if (typeof o.kind === 'string') return o.kind
+            if (o.identifierKind !== undefined) return String(o.identifierKind)
+            return '?'
+          })
+        : [],
       extractedEthereumAddresses: [...extracted],
+      rawIdentitySample: sample,
     })
+
+    if (extracted.size === 0 && Array.isArray(identities) && identities.length > 0) {
+      console.info(
+        '[shoutbox:xmtp-verify] identities present but none parsed as Ethereum — first row:',
+        identities[0],
+      )
+    }
   }
 
   console.info('[shoutbox:xmtp-verify] fetchInboxStates', {
     requestedInboxIds: unique,
-    responseRowCount: Array.isArray(rows) ? rows.length : 0,
+    responseRowCount: rows.length,
     summary,
   })
 

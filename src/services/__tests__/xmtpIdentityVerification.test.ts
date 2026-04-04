@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { IdentifierKind } from '@xmtp/browser-sdk'
 import {
   isLikelyEthereumAddress,
   normalizeEthereumAddress,
@@ -48,6 +49,15 @@ describe('ethereumAddressesFromInboxState', () => {
       identities: [{ kind: 'ETHEREUM', identifier: 'not-an-address' }],
     })
     expect(set.size).toBe(0)
+  })
+
+  it('collects WASM-style identifierKind + identifier rows', () => {
+    const addr = `0x${'2'.repeat(40)}`
+    const set = ethereumAddressesFromInboxState({
+      inboxId: 'i1',
+      identities: [{ identifierKind: IdentifierKind.Ethereum, identifier: addr }],
+    })
+    expect([...set]).toEqual([normalizeEthereumAddress(addr)])
   })
 })
 
