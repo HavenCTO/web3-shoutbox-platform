@@ -9,6 +9,6 @@ describe('gunNodePrelude', () => {
   it('runs applyGunNodeDiskDefaults on import', async () => {
     delete process.env.RAD
     await import('./gunNodePrelude.js')
-    expect(process.env.RAD).toBe('false')
+    expect(process.env.RAD).toBe('true')
   })
 })

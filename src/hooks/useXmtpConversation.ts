@@ -24,8 +24,9 @@ import {
 } from '@/services/messagingService'
 import { resyncXmtpConversation } from '@/services/resyncXmtpConversation'
 import { MEMBER_SETTLE_RETRY_CODE, XMTP_MLS_SYNC_LIKELY_CODE } from '@/types/errors'
-import { isLikelyXmtpMlsOrDecryptError } from '@/lib/xmtpMlsError'
+import { isLikelyXmtpMlsOrDecryptError, isLikelySecretReuseError } from '@/lib/xmtpMlsError'
 import { tryEmitXmtpMlsDiagnostic } from '@/lib/xmtpMlsDiagnostics'
+import type { ConnectionStep } from '@/lib/chat-status'
 import type { Group } from '@xmtp/browser-sdk'
 
 export interface UseXmtpConversationOptions {
@@ -35,9 +36,19 @@ export interface UseXmtpConversationOptions {
 
 const defaultRequiredInboxIds: () => readonly string[] = () => []
 
+/** Max auto-recovery attempts for transient MLS errors before surfacing to user */
+const MAX_AUTO_RECOVERY_ATTEMPTS = 2
+/** Delay before auto-recovery attempt */
+const AUTO_RECOVERY_DELAY_MS = 2000
+
 /**
  * Hook that manages a single XMTP group conversation's lifecycle.
  * Loads existing messages and streams new ones when a groupId is provided.
+ *
+ * Now includes:
+ * - Progressive connection step tracking for UX
+ * - Auto-recovery for transient MLS/SecretReuse errors
+ * - Message queue support for offline-first typing
  */
 export function useXmtpConversation(
   groupId: string | null,
@@ -65,17 +76,45 @@ export function useXmtpConversation(
   const [readyForGroupId, setReadyForGroupId] = useState<string | null>(null)
   const [isResyncing, setIsResyncing] = useState(false)
   const [initRetryNonce, setInitRetryNonce] = useState(0)
+  /** Progressive connection step for UX indicators */
+  const [connectionStep, setConnectionStep] = useState<ConnectionStep | null>(null)
+  /** True when auto-recovering from a transient MLS error */
+  const [isAutoRecovering, setIsAutoRecovering] = useState(false)
+  /** Queued messages typed while connecting — flushed when ready */
+  const messageQueueRef = useRef<string[]>([])
+
   const messagingReady = isConversationReadyForGroup(groupId, readyForGroupId)
 
   const showResyncCta =
     Boolean(error) &&
+    !isAutoRecovering &&
     (errorCode === XMTP_MLS_SYNC_LIKELY_CODE ||
       errorCode === 'XMTP_RESYNC_FAILED' ||
       isLikelyXmtpMlsOrDecryptError(error ?? ''))
 
-  const showInitRetryCta = Boolean(error) && errorCode === MEMBER_SETTLE_RETRY_CODE
+  const showInitRetryCta = Boolean(error) && !isAutoRecovering && errorCode === MEMBER_SETTLE_RETRY_CODE
 
   groupIdRef.current = groupId
+
+  // Flush queued messages when messaging becomes ready
+  useEffect(() => {
+    if (!messagingReady || !groupRef.current) return
+    const queue = messageQueueRef.current.splice(0)
+    if (queue.length === 0) return
+
+    const flushQueue = async () => {
+      for (const text of queue) {
+        const result = await serviceSendMessage(groupRef.current!, text)
+        if (!result.ok) {
+          toast.error('A queued message failed to send.')
+        }
+      }
+      if (queue.length > 0) {
+        toast.success(`${queue.length} queued message${queue.length > 1 ? 's' : ''} sent!`)
+      }
+    }
+    void flushQueue()
+  }, [messagingReady])
 
   // Load messages and start stream when groupId changes
   useEffect(() => {
@@ -84,15 +123,20 @@ export function useXmtpConversation(
     groupRef.current = null
     setReadyForGroupId(null)
     readyForGroupIdRef.current = null
+    setConnectionStep(null)
+    setIsAutoRecovering(false)
+    messageQueueRef.current = []
     clearMessages()
 
     if (!client || !groupId) return
 
     let cancelled = false
+    let autoRecoveryCount = 0
 
     const init = async () => {
       setLoading(true)
       setError(null)
+      setConnectionStep('finding-peers')
 
       try {
         const conversation = await waitForGroupConversation(
@@ -109,11 +153,14 @@ export function useXmtpConversation(
           )
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
+          setConnectionStep(null)
           return
         }
 
         const group = conversation as Group
         groupRef.current = group
+
+        setConnectionStep('establishing-encryption')
 
         const synced = await syncGroupForMessaging(group, () => cancelled)
         if (cancelled) return
@@ -123,8 +170,11 @@ export function useXmtpConversation(
           )
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
+          setConnectionStep(null)
           return
         }
+
+        setConnectionStep('syncing-members')
 
         const membersResult = await waitForGroupMembersSettled(
           group,
@@ -142,6 +192,7 @@ export function useXmtpConversation(
           setError(msg, MEMBER_SETTLE_RETRY_CODE)
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
+          setConnectionStep(null)
           return
         }
 
@@ -154,6 +205,8 @@ export function useXmtpConversation(
           /* flush is best-effort */
         }
 
+        setConnectionStep('syncing-history')
+
         const syncedAfterMembers = await syncGroupForMessaging(group, () => cancelled)
         if (cancelled) return
         if (!syncedAfterMembers) {
@@ -162,6 +215,7 @@ export function useXmtpConversation(
           )
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
+          setConnectionStep(null)
           return
         }
 
@@ -171,11 +225,48 @@ export function useXmtpConversation(
         if (result.ok) {
           setMessages(result.data)
         } else {
-          setError(result.error.message, result.error.code)
-          setReadyForGroupId(null)
-          readyForGroupIdRef.current = null
-          return
+          // Check if this is a transient MLS error we can auto-recover from
+          if (isTransientMlsError(result.error.message) && autoRecoveryCount < MAX_AUTO_RECOVERY_ATTEMPTS) {
+            autoRecoveryCount++
+            setIsAutoRecovering(true)
+            setConnectionStep('establishing-encryption')
+            await sleep(AUTO_RECOVERY_DELAY_MS)
+            if (cancelled) return
+            try {
+              await client.conversations.sync()
+              await group.sync()
+              const retryResult = await getGroupMessages(group)
+              if (cancelled) return
+              if (retryResult.ok) {
+                setMessages(retryResult.data)
+                setIsAutoRecovering(false)
+                // Continue to stream setup below
+              } else {
+                setError(retryResult.error.message, retryResult.error.code)
+                setReadyForGroupId(null)
+                readyForGroupIdRef.current = null
+                setConnectionStep(null)
+                setIsAutoRecovering(false)
+                return
+              }
+            } catch {
+              setError(result.error.message, result.error.code)
+              setReadyForGroupId(null)
+              readyForGroupIdRef.current = null
+              setConnectionStep(null)
+              setIsAutoRecovering(false)
+              return
+            }
+          } else {
+            setError(result.error.message, result.error.code)
+            setReadyForGroupId(null)
+            readyForGroupIdRef.current = null
+            setConnectionStep(null)
+            return
+          }
         }
+
+        setConnectionStep('finalizing')
 
         const { unsubscribe } = streamGroupMessages(group, (msg) => {
           if (!cancelled) addMessage(msg)
@@ -194,10 +285,28 @@ export function useXmtpConversation(
         if (!cancelled && groupId) {
           setReadyForGroupId(groupId)
           readyForGroupIdRef.current = groupId
+          setConnectionStep('ready')
+          setIsAutoRecovering(false)
         }
       } catch (e) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e)
+
+          // Auto-recover from transient MLS errors silently
+          if (isTransientMlsError(msg) && autoRecoveryCount < MAX_AUTO_RECOVERY_ATTEMPTS) {
+            autoRecoveryCount++
+            setIsAutoRecovering(true)
+            setConnectionStep('establishing-encryption')
+            // Schedule a retry after a brief delay
+            await sleep(AUTO_RECOVERY_DELAY_MS)
+            if (!cancelled) {
+              setIsAutoRecovering(false)
+              // Trigger a retry by bumping the nonce
+              setInitRetryNonce((n) => n + 1)
+            }
+            return
+          }
+
           const resolvedInit = isLikelyXmtpMlsOrDecryptError(msg)
             ? XMTP_MLS_SYNC_LIKELY_CODE
             : null
@@ -210,6 +319,7 @@ export function useXmtpConversation(
             inboxId,
             extras: {
               readyAfterStreamUnset: true,
+              autoRecoveryCount,
             },
           })
           setError(
@@ -218,6 +328,7 @@ export function useXmtpConversation(
           )
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null
+          setConnectionStep(null)
           toast.error('Connection issue — retrying...')
         }
       } finally {
@@ -252,11 +363,29 @@ export function useXmtpConversation(
         || !expectedId
         || readyForGroupIdRef.current !== expectedId
       ) {
-        toast.info('Chat is still connecting…')
+        // Queue the message for sending when ready
+        messageQueueRef.current.push(text)
+        toast.info('Message queued — will send when connected.')
         return
       }
       const result = await serviceSendMessage(groupRef.current, text)
       if (!result.ok) {
+        // Auto-recover from transient MLS send errors
+        if (isTransientMlsError(result.error.message)) {
+          toast.info('Syncing encryption state — your message will be retried.')
+          try {
+            if (groupRef.current) {
+              await groupRef.current.sync()
+              const retryResult = await serviceSendMessage(groupRef.current, text)
+              if (retryResult.ok) {
+                toast.success('Message sent after sync.')
+                return
+              }
+            }
+          } catch {
+            // Fall through to error toast
+          }
+        }
         const errMsg = result.error.code === 'XMTP_RATE_LIMIT'
           ? 'Slow down — too many operations. Waiting...'
           : 'Message failed to send. Tap to retry.'
@@ -301,10 +430,25 @@ export function useXmtpConversation(
     isLoading,
     error,
     messagingReady,
+    connectionStep,
+    isAutoRecovering,
+    /** Number of messages queued while connecting */
+    queuedMessageCount: messageQueueRef.current.length,
     showResyncCta,
     showInitRetryCta,
     retryConversationInit,
     resyncConversation,
     isResyncing,
   }
+}
+
+/**
+ * Returns true for transient MLS errors that typically self-heal
+ * (SecretReuseError, forward secrecy deletions, key rotation races).
+ * These should be auto-recovered silently rather than shown to users.
+ */
+function isTransientMlsError(message: string): boolean {
+  return isLikelySecretReuseError(message) ||
+    message.toLowerCase().includes('forward secrecy') ||
+    message.toLowerCase().includes('ciphertext generation out of bounds')
 }

@@ -25,7 +25,7 @@ const envSchema = z.object({
   VITE_GUN_RELAY_PEERS: z
     .string()
     .optional()
-    .default('https://gun-manhattan.herokuapp.com/gun,https://gun-us.herokuapp.com/gun'),
+    .default(' https://elaine-fugal-supernumerously.ngrok-free.dev/gun,https://peer.wallie.io/gun'),
 
   VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(5),
 })

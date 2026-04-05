@@ -24,7 +24,8 @@ vi.mock('openai', () => ({
 }))
 
 const hoisted = vi.hoisted(() => {
-  const node = {
+  const rootOn = vi.fn()
+  const node: Record<string, unknown> = {
     get() {
       return node
     },
@@ -47,8 +48,11 @@ const hoisted = vi.hoisted(() => {
     off() {
       return node
     },
+    back() {
+      return { _: { on: rootOn } }
+    },
   }
-  return { MockGun: vi.fn(() => node) }
+  return { MockGun: vi.fn(() => node), rootOn }
 })
 
 vi.mock('gun', () => ({ default: hoisted.MockGun }))
@@ -95,17 +99,22 @@ describe('defaultRuntimeImpl', () => {
       expect.objectContaining({
         peers: ['https://peer/a'],
         localStorage: false,
-        radisk: false,
-        rad: false,
-        rfs: false,
+        radisk: true,
         file: expect.stringMatching(/[\\/]radata$/),
         store: expect.objectContaining({
           put: expect.any(Function),
           get: expect.any(Function),
           list: expect.any(Function),
         }),
+        WebSocket: expect.anything(),
       }),
     )
+  })
+
+  it('triggers dam:hi to initiate peer WebSocket connections', () => {
+    hoisted.rootOn.mockClear()
+    defaultRuntimeImpl.createGun(['https://peer/a'])
+    expect(hoisted.rootOn).toHaveBeenCalledWith('out', { dam: 'hi' })
   })
 })
 

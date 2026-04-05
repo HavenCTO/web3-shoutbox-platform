@@ -143,6 +143,9 @@ export function EmbedShoutboxPage() {
           isResyncing={room.isResyncing}
           showInitRetryCta={room.showInitRetryCta}
           onRetryConversationInit={room.retryConversationInit}
+          connectionStep={room.connectionStep}
+          isAutoRecovering={room.isAutoRecovering}
+          queuedMessageCount={room.queuedMessageCount}
         />
       </div>
     </div>

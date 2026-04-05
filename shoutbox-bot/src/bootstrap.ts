@@ -1,4 +1,5 @@
 import GunDefault from 'gun'
+import WebSocket from 'ws'
 import OpenAI from 'openai'
 import { join } from 'node:path'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -25,24 +26,33 @@ const GunFactory = GunDefault as unknown as (opts: {
   peers: string[]
   localStorage: boolean
   radisk: boolean
-  rad: boolean
-  rfs: boolean
+  rad?: boolean
+  rfs?: boolean
   file: string
   store: ReturnType<typeof createShoutboxGunMemoryStore>
+  WebSocket?: unknown
 }) => unknown
 
 export const defaultRuntimeImpl: ShoutboxBotRuntimeImpl = {
   createGun(peers) {
     const fileRoot = join(gunIsolateDirectory(), 'radata')
-    return GunFactory({
+    const gun = GunFactory({
       peers: [...peers],
       localStorage: false,
-      radisk: false,
-      rad: false,
-      rfs: false,
+      radisk: true,
       file: fileRoot,
       store: createShoutboxGunMemoryStore(),
-    }) as ShoutboxGunRef
+      WebSocket,
+    })
+
+    // Gun's Node.js entry (lib/server.js) sets root.once = 1 which causes
+    // the built-in websocket handler (src/websocket.js) to skip initiating
+    // outbound WebSocket connections to relay peers.  Manually emitting the
+    // 'hi' DAM message forces the mesh layer to open those connections.
+    const root = (gun as unknown as { back(n: number): { _: { on(ev: string, msg: unknown): void } } }).back(-1)._
+    root.on('out', { dam: 'hi' })
+
+    return gun as ShoutboxGunRef
   },
   createXmtpClient: createShoutboxBotClient,
 }
@@ -77,7 +87,7 @@ export async function startShoutboxRoomBotFromConfig(
             systemPrompt: cfg.llm.systemPrompt,
           },
         )
-      : async (ctx) => formatShoutboxReply(ctx)
+      : async (ctx: Parameters<typeof formatShoutboxReply>[0]) => formatShoutboxReply(ctx)
 
   return runShoutboxBot({
     cfg: {

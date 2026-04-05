@@ -65,6 +65,9 @@ export function useShoutboxRoom(roomUrl: string) {
     isLoading,
     error: conversationError,
     messagingReady,
+    connectionStep,
+    isAutoRecovering,
+    queuedMessageCount,
     showResyncCta: conversationShowResync,
     showInitRetryCta: conversationShowInitRetry,
     retryConversationInit,
@@ -76,13 +79,13 @@ export function useShoutboxRoom(roomUrl: string) {
   const { isLeader } = useLeaderElection()
   const windowEpoch = useChatStore((s) => s.windowEpoch)
 
-  // Block sends during transition
+  // Allow queueing during connection, block only during transition
   const sendMessage = useCallback(
     async (text: string) => {
-      if (groupState === 'transitioning' || !messagingReady) return
+      if (groupState === 'transitioning') return
       return rawSendMessage(text)
     },
-    [groupState, messagingReady, rawSendMessage],
+    [groupState, rawSendMessage],
   )
 
   const isTransitioning = groupState === 'transitioning'
@@ -103,6 +106,9 @@ export function useShoutboxRoom(roomUrl: string) {
     isLoading,
     isTransitioning,
     messagingReady,
+    connectionStep,
+    isAutoRecovering,
+    queuedMessageCount,
     error: groupError ?? conversationError ?? null,
     showResyncCta,
     showInitRetryCta,
