@@ -14,6 +14,60 @@ import { ok, err } from '@/types/result'
 import { readCurrentGroup, writeGroupToGunDB, subscribeToGroup } from '@/lib/group-lifecycle'
 import { createGroup, addMembersToGroup } from '@/services/messagingService'
 
+// ── Deferred creation gate ──────────────────────────────────────────────────
+
+/**
+ * Minimum number of distinct online inbox IDs required before the leader
+ * creates an MLS group.  A value of 2 means a solo user never triggers
+ * MLS setup — creation is deferred until at least one *other* participant
+ * is stably present.
+ */
+export const MIN_PARTICIPANTS = 2
+
+/**
+ * How long (ms) the multi-participant condition must hold before
+ * createGroupAsLeader is allowed.  Prevents flicker: if someone appears
+ * for one heartbeat cycle and vanishes, we don't spin up MLS.
+ *
+ * Intentionally > HEARTBEAT_INTERVAL_MS (10 s) so the condition must span
+ * at least two heartbeat ticks.
+ */
+export const CREATION_GATE_DEBOUNCE_MS = 12_000
+
+/**
+ * Determines whether MLS group creation should still be deferred.
+ *
+ * Pure function — safe to call every render / presence tick.
+ *
+ * @param onlineUsers  Current presence list.
+ * @param selfInboxId  The local user's inbox ID (may be null during init).
+ * @param hasExistingGroup  True if the room/epoch already has an active groupId.
+ * @returns `true` when creation should **wait** (i.e. not enough participants).
+ */
+export function shouldDeferGroupCreation(
+  onlineUsers: OnlineUser[],
+  selfInboxId: string | null,
+  hasExistingGroup: boolean,
+): boolean {
+  // Latch: once a group exists for this epoch, never revert to deferred.
+  if (hasExistingGroup) return false
+
+  const distinctOnline = new Set(
+    onlineUsers.filter((u) => u.isOnline).map((u) => u.inboxId),
+  )
+  return distinctOnline.size < MIN_PARTICIPANTS
+}
+
+/**
+ * Returns the count of distinct online inbox IDs.
+ * Useful for UI ("Waiting for others — 1 of 2 needed") and for logging.
+ */
+export function countDistinctOnlineInboxes(onlineUsers: OnlineUser[]): number {
+  return new Set(onlineUsers.filter((u) => u.isOnline).map((u) => u.inboxId)).size
+}
+
+// ── Group window helpers ────────────────────────────────────────────────────
+
 /** Check if a group window has expired. */
 export function isGroupExpired(groupWindow: GroupWindow): boolean {
   return Date.now() > groupWindow.expiresAt

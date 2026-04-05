@@ -41,6 +41,12 @@ export function getChatStatusPresentation(
   if (groupState === 'transitioning') {
     return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Switching sessions…' }
   }
+  if (groupState === 'waiting-for-peers') {
+    return {
+      dotClassName: 'bg-sky-500 animate-pulse',
+      statusText: `Waiting for others to join · ${onlineCount} online`,
+    }
+  }
   if (groupState === 'waiting-for-group') {
     return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Setting up chat room…' }
   }

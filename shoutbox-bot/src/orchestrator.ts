@@ -75,6 +75,18 @@ export async function runShoutboxBot(
 
   const stopPresence = deps.presence.start(roomKey, botInboxId, deps.cfg.botEthereumAddress)
 
+  // Periodic consent sweep — auto-allow new groups that the bot gets added to.
+  // This runs every 15s alongside the group subscription so the bot doesn't
+  // miss conversations that arrive while the stream is already listening.
+  const consentSweepTimer = setInterval(() => {
+    deps.xmtp.syncAllowedConversations().catch((e) => {
+      deps.cfg.log(`[shoutbox-bot] consent sweep error: ${e instanceof Error ? e.message : String(e)}`)
+    })
+  }, 15_000)
+
+  // Initial consent sweep on startup
+  await deps.xmtp.syncAllowedConversations()
+
   const stream = await deps.xmtp.startAllMessagesStream({
     onMessage: (msg) => {
       void handleIncoming(msg)
@@ -86,15 +98,26 @@ export async function runShoutboxBot(
 
   async function handleIncoming(msg: DecodedMessage): Promise<void> {
     const text = textFromDecodedMessage(msg)
-    if (text === null) return
-    if (
-      !shouldProcessShoutboxMessage(msg, {
-        conversationId: msg.conversationId,
-        activeGroupId: state.activeGroupId,
-        senderInboxId: msg.senderInboxId,
-        botInboxId,
-      })
-    ) {
+    if (text === null) {
+      deps.cfg.log(`[shoutbox-bot] ← non-text msg id=${msg.id.slice(0, 8)}… convo=${msg.conversationId.slice(0, 8)}…`)
+      return
+    }
+    deps.cfg.log(`[shoutbox-bot] ← text from ${msg.senderInboxId.slice(0, 8)}… convo=${msg.conversationId.slice(0, 8)}… active=${state.activeGroupId.slice(0, 8) || '(none)'}: "${text.slice(0, 80)}"`)
+    const check = {
+      conversationId: msg.conversationId,
+      activeGroupId: state.activeGroupId,
+      senderInboxId: msg.senderInboxId,
+      botInboxId,
+    }
+    if (!shouldProcessShoutboxMessage(msg, check)) {
+      const reason = check.activeGroupId === ''
+        ? 'no active group'
+        : msg.conversationId !== check.activeGroupId
+          ? `convo mismatch (got ${msg.conversationId.slice(0, 8)}… want ${check.activeGroupId.slice(0, 8)}…)`
+          : msg.senderInboxId === check.botInboxId
+            ? 'own message'
+            : 'not text'
+      deps.cfg.log(`[shoutbox-bot]   ↳ skipped: ${reason}`)
       return
     }
     let ctx: ShoutboxReplyContext
@@ -142,6 +165,7 @@ export async function runShoutboxBot(
 
   return {
     stop: async () => {
+      clearInterval(consentSweepTimer)
       stopPresence()
       unsubGroup()
       await stream.close()

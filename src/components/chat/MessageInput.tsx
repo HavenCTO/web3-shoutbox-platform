@@ -26,7 +26,12 @@ function getPlaceholder(
 ): string {
   if (!isConnected) return 'Connect wallet to chat'
   if (!xmtpReady) return 'Setting up messaging…'
-  if (groupState !== 'active' && groupState !== 'expiring') return 'Waiting for session…'
+  if (groupState === 'waiting-for-peers' && allowQueueing) {
+    return 'Type a message — it will send when someone joins…'
+  }
+  if (groupState !== 'active' && groupState !== 'expiring' && groupState !== 'waiting-for-peers') {
+    return 'Waiting for session…'
+  }
   if (!messagingReady && allowQueueing) return 'Type a message — it will send when connected…'
   if (!messagingReady) return 'Connecting to encrypted chat…'
   return 'Type a message…'
@@ -45,8 +50,9 @@ export function MessageInput({
   const [sending, setSending] = useState(false)
 
   const sessionOpen = groupState === 'active' || groupState === 'expiring'
-  // Allow input when queueing is enabled, even if not fully ready
-  const canType = isConnected && xmtpReady && sessionOpen && (messagingReady || allowQueueing)
+  const isDeferredWithQueue = groupState === 'waiting-for-peers' && allowQueueing
+  // Allow input when queueing is enabled, even if not fully ready or waiting for peers
+  const canType = isConnected && xmtpReady && (isDeferredWithQueue || (sessionOpen && (messagingReady || allowQueueing)))
   const canSend = canType && !sending
   const disabled = !canSend
 

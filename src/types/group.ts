@@ -9,6 +9,7 @@ export interface GroupWindow {
 
 export type GroupState =
   | 'idle'
+  | 'waiting-for-peers'
   | 'waiting-for-group'
   | 'active'
   | 'expiring'

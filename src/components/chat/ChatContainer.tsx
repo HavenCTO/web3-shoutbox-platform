@@ -65,6 +65,7 @@ export function ChatContainer({
   )
 
   const isSettingUp = groupState === 'waiting-for-group' || groupState === 'idle'
+  const isWaitingForPeers = groupState === 'waiting-for-peers'
 
   // Don't show hard errors when auto-recovering
   const hasConversationError = Boolean(error) && !isAutoRecovering
@@ -169,8 +170,19 @@ export function ChatContainer({
         </div>
       )}
 
-      {/* Skeleton for group setup */}
-      {isSettingUp && !isLoading ? (
+      {/* Waiting for peers — deferred MLS creation */}
+      {isWaitingForPeers ? (
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 p-4">
+          <div className="h-10 w-10 rounded-full bg-sky-950/60 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-sky-400" />
+          </div>
+          <p className="text-sm font-medium text-gray-300">Waiting for others to join…</p>
+          <p className="text-xs text-gray-500 text-center max-w-xs">
+            Encrypted chat will start when another person enters the room.
+            You can type a message now — it will send automatically.
+          </p>
+        </div>
+      ) : isSettingUp && !isLoading ? (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 p-4">
           <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
           <p className="text-xs text-gray-400">Setting up chat room…</p>
@@ -187,14 +199,14 @@ export function ChatContainer({
         />
       )}
 
-      {/* Input — always at bottom, allows typing while connecting for queueing */}
+      {/* Input — always at bottom, allows typing while connecting or waiting for peers */}
       <MessageInput
         onSend={sendMessage}
         isConnected={isConnected}
         xmtpReady={xmtpStatus === 'ready'}
         groupState={groupState}
         messagingReady={messagingReady}
-        allowQueueing={!messagingReady && groupState === 'active'}
+        allowQueueing={!messagingReady && (groupState === 'active' || isWaitingForPeers)}
         queuedCount={queuedMessageCount}
       />
     </div>

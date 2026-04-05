@@ -44,16 +44,33 @@ export interface PresenceHeartbeatOpts {
  */
 export function startGunPresenceHeartbeat(opts: PresenceHeartbeatOpts): () => void {
   const ref = opts.gun.get(GUN_NAMESPACE).get('presence').get(opts.roomKey).get(opts.inboxId)
+  let tickCount = 0
+  let lastAckOk = 0
+  let lastAckErr = 0
   const tick = (): void => {
+    tickCount++
+    const now = opts.now()
     const payload: PresencePayload = {
       inboxId: opts.inboxId,
       address: opts.address,
-      ts: opts.now(),
+      ts: now,
       status: 'online',
     }
+    if (opts.log) {
+      opts.log(`[shoutbox-bot] presence tick #${tickCount} ts=${now} path=shoutbox-v1/presence/${opts.roomKey.slice(0, 8)}…/${opts.inboxId.slice(0, 8)}…`)
+    }
     ref.put(payload, (ack) => {
-      if (ack?.err && opts.log) {
-        opts.log(`[shoutbox-bot] Gun presence put error: ${formatGunPutErr(ack.err)}`)
+      if (ack?.err) {
+        lastAckErr++
+        if (opts.log) {
+          opts.log(`[shoutbox-bot] Gun presence put ERROR #${lastAckErr}: ${formatGunPutErr(ack.err)}`)
+        }
+      } else {
+        lastAckOk++
+        // Log first few successes, then periodically every 6th (~ every minute)
+        if (opts.log && (lastAckOk <= 3 || lastAckOk % 6 === 0)) {
+          opts.log(`[shoutbox-bot] Gun presence put OK (ack #${lastAckOk}, errors so far: ${lastAckErr})`)
+        }
       }
     })
   }

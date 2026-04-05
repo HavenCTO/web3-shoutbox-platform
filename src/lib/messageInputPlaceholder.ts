@@ -1,3 +1,4 @@
+import type { ConnectionStep } from '@/lib/chat-status'
 import type { GroupState } from '@/types/group'
 
 export interface MessageInputPlaceholderParams {
@@ -6,8 +7,7 @@ export interface MessageInputPlaceholderParams {
   groupState: GroupState
   messagingReady: boolean
   allowQueueing: boolean
-  /** When positive, show queue-specific placeholder while messaging is still connecting */
-  queuedMessageCount?: number
+  connectionStep: ConnectionStep | null | undefined
 }
 
 /**
@@ -20,13 +20,13 @@ export function getMessageInputPlaceholder(params: MessageInputPlaceholderParams
     groupState,
     messagingReady,
     allowQueueing,
-    queuedMessageCount = 0,
+    connectionStep,
   } = params
   if (!isConnected) return 'Connect wallet to chat'
   if (!xmtpReady) return 'Setting up messaging…'
   if (groupState !== 'active' && groupState !== 'expiring') return 'Waiting for session…'
   if (!messagingReady && allowQueueing) {
-    if (queuedMessageCount > 0) {
+    if (connectionStep === 'waiting-in-queue') {
       return 'In queue — type a message; it sends when the session is ready…'
     }
     return 'Type a message — it will send when connected…'

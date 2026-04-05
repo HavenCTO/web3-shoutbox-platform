@@ -79,7 +79,7 @@ export function useShoutboxRoom(roomUrl: string) {
   const { isLeader } = useLeaderElection()
   const windowEpoch = useChatStore((s) => s.windowEpoch)
 
-  // Allow queueing during connection, block only during transition
+  // Allow queueing during connection and deferred state, block only during transition
   const sendMessage = useCallback(
     async (text: string) => {
       if (groupState === 'transitioning') return
@@ -89,6 +89,7 @@ export function useShoutboxRoom(roomUrl: string) {
   )
 
   const isTransitioning = groupState === 'transitioning'
+  const isWaitingForPeers = groupState === 'waiting-for-peers'
 
   const showResyncCta = conversationShowResync && !groupError
   const showInitRetryCta = conversationShowInitRetry && !groupError
