@@ -7,7 +7,7 @@ const base = {
   groupState: 'active' as const,
   messagingReady: false,
   allowQueueing: true,
-  connectionStep: null as const,
+  queuedMessageCount: 0,
 }
 
 describe('getMessageInputPlaceholder', () => {
@@ -29,20 +29,20 @@ describe('getMessageInputPlaceholder', () => {
     ).toBe('Waiting for session…')
   })
 
-  it('uses queue copy when in waiting-in-queue with allowQueueing', () => {
+  it('uses queue copy when messages are queued with allowQueueing', () => {
     expect(
       getMessageInputPlaceholder({
         ...base,
-        connectionStep: 'waiting-in-queue',
+        queuedMessageCount: 1,
       }),
     ).toBe('In queue — type a message; it sends when the session is ready…')
   })
 
-  it('uses generic queue copy when not in waiting-in-queue', () => {
+  it('uses generic queue copy when nothing is queued', () => {
     expect(
       getMessageInputPlaceholder({
         ...base,
-        connectionStep: 'establishing-encryption',
+        queuedMessageCount: 0,
       }),
     ).toBe('Type a message — it will send when connected…')
   })
@@ -52,7 +52,7 @@ describe('getMessageInputPlaceholder', () => {
       getMessageInputPlaceholder({
         ...base,
         allowQueueing: false,
-        connectionStep: 'waiting-in-queue',
+        queuedMessageCount: 1,
       }),
     ).toBe('Connecting to encrypted chat…')
   })
