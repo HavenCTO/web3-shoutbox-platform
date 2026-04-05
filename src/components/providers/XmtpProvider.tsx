@@ -33,7 +33,7 @@ function friendlyErrorMessage(error: unknown): string {
   if (isBrowserCompatError(error))
     return 'Your browser may not support the required storage features. Try a different browser or disable strict privacy mode.'
   if (isInstallationLimitError(error))
-    return 'Too many active sessions (limit: 10). Please close other tabs or devices and try again.'
+    return 'XMTP allows at most 10 devices or browsers per wallet. Revoke old installations (e.g. from another browser where this wallet still works), then try again. See https://docs.xmtp.org/chat-apps/core-messaging/manage-inboxes'
   return error instanceof Error ? error.message : 'Failed to initialize messaging'
 }
 

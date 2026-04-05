@@ -14,6 +14,11 @@ import { ok, err } from '@/types/result'
 import { readCurrentGroup, writeGroupToGunDB, subscribeToGroup } from '@/lib/group-lifecycle'
 import { createGroup, addMembersToGroup } from '@/services/messagingService'
 
+export interface EnsureOnlineUsersInGroupResult {
+  /** Ethereum addresses passed to `addMembersByIdentifiers` for peers not yet on the MLS roster. */
+  addedAddresses: string[]
+}
+
 /** Check if a group window has expired. */
 export function isGroupExpired(groupWindow: GroupWindow): boolean {
   return Date.now() > groupWindow.expiresAt

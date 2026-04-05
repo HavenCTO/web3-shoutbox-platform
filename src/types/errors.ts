@@ -106,7 +106,13 @@ export function isGroupFullError(error: unknown): boolean {
 /** Returns true if the error indicates too many XMTP installations (10 limit) */
 export function isInstallationLimitError(error: unknown): boolean {
   const msg = getErrorMessage(error).toLowerCase()
-  return msg.includes('installation') && (msg.includes('limit') || msg.includes('maximum'))
+  if (!msg.includes('installation')) return false
+  return (
+    msg.includes('limit') ||
+    msg.includes('maximum') ||
+    msg.includes('10/10') ||
+    msg.includes('already registered')
+  )
 }
 
 /** Returns true if the member is already in the group */

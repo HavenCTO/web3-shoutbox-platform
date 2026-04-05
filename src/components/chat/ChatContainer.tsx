@@ -12,7 +12,7 @@ import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { PresencePanel } from '@/components/presence/PresencePanel'
 import { MessageSkeleton } from '@/components/ui/Skeleton'
-import { Loader2, Clock } from 'lucide-react'
+import { Loader2, Clock, Users } from 'lucide-react'
 import type { GroupState } from '@/types/group'
 import type { ShoutboxMessage } from '@/types/message'
 import type { OnlineUser } from '@/types/presence'
@@ -149,7 +149,14 @@ export function ChatContainer({
       {showConnectingBanner && (
         <div className="border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 sm:px-3 sm:py-2">
           <div className="flex items-center gap-2 text-[10px] text-sky-200/95 sm:text-xs">
-            <Loader2 className="h-3 w-3 animate-spin text-sky-400 shrink-0" />
+            {connectionStep === 'waiting-in-queue' ? (
+              <span className="flex shrink-0 items-center gap-1" aria-hidden>
+                <Users className="h-3 w-3 text-amber-400/90" />
+                <Loader2 className="h-3 w-3 animate-spin text-sky-400" />
+              </span>
+            ) : (
+              <Loader2 className="h-3 w-3 animate-spin text-sky-400 shrink-0" />
+            )}
             <span>{bannerText}</span>
           </div>
           {/* Connection progress dots */}
@@ -159,7 +166,7 @@ export function ChatContainer({
               <div className="h-px w-3 bg-gray-600" />
               <ConnectionProgressDot active={connectionStep === 'establishing-encryption'} completed={isStepCompleted('establishing-encryption', connectionStep)} />
               <div className="h-px w-3 bg-gray-600" />
-              <ConnectionProgressDot active={connectionStep === 'syncing-members'} completed={isStepCompleted('syncing-members', connectionStep)} />
+              <ConnectionProgressDot active={connectionStep === 'waiting-in-queue'} completed={isStepCompleted('waiting-in-queue', connectionStep)} />
               <div className="h-px w-3 bg-gray-600" />
               <ConnectionProgressDot active={connectionStep === 'syncing-history'} completed={isStepCompleted('syncing-history', connectionStep)} />
               <div className="h-px w-3 bg-gray-600" />
@@ -196,6 +203,7 @@ export function ChatContainer({
         messagingReady={messagingReady}
         allowQueueing={!messagingReady && groupState === 'active'}
         queuedCount={queuedMessageCount}
+        connectionStep={connectionStep}
       />
     </div>
   )
@@ -204,7 +212,7 @@ export function ChatContainer({
 const STEP_ORDER: ConnectionStep[] = [
   'finding-peers',
   'establishing-encryption',
-  'syncing-members',
+  'waiting-in-queue',
   'syncing-history',
   'finalizing',
   'ready',

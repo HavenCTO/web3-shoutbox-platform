@@ -3,6 +3,8 @@ import { Send, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { GroupState } from '@/types/group'
+import type { ConnectionStep } from '@/lib/chat-status'
+import { getMessageInputPlaceholder } from '@/lib/messageInputPlaceholder'
 
 interface MessageInputProps {
   onSend: (text: string) => Promise<void>
@@ -15,21 +17,8 @@ interface MessageInputProps {
   allowQueueing?: boolean
   /** Number of messages currently queued */
   queuedCount?: number
-}
-
-function getPlaceholder(
-  isConnected: boolean,
-  xmtpReady: boolean,
-  groupState: GroupState,
-  messagingReady: boolean,
-  allowQueueing: boolean,
-): string {
-  if (!isConnected) return 'Connect wallet to chat'
-  if (!xmtpReady) return 'Setting up messaging…'
-  if (groupState !== 'active' && groupState !== 'expiring') return 'Waiting for session…'
-  if (!messagingReady && allowQueueing) return 'Type a message — it will send when connected…'
-  if (!messagingReady) return 'Connecting to encrypted chat…'
-  return 'Type a message…'
+  /** When set, adjusts placeholder during progressive connect (e.g. matchmaking queue). */
+  connectionStep?: ConnectionStep | null
 }
 
 export function MessageInput({
@@ -40,6 +29,7 @@ export function MessageInput({
   messagingReady,
   allowQueueing = false,
   queuedCount = 0,
+  connectionStep = null,
 }: MessageInputProps) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -87,7 +77,14 @@ export function MessageInput({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={getPlaceholder(isConnected, xmtpReady, groupState, messagingReady, allowQueueing)}
+          placeholder={getMessageInputPlaceholder({
+            isConnected,
+            xmtpReady,
+            groupState,
+            messagingReady,
+            allowQueueing,
+            connectionStep,
+          })}
           disabled={!canType}
           rows={1}
           className={cn(
@@ -112,8 +109,14 @@ export function MessageInput({
                 : 'bg-blue-600 hover:bg-blue-500',
             'disabled:opacity-40 disabled:cursor-not-allowed',
           )}
-          aria-label={messagingReady ? 'Send message' : 'Queue message'}
-          title={messagingReady ? 'Send message' : 'Queue message — will send when connected'}
+          aria-label={messagingReady ? 'Send message' : 'Queue message for when session is ready'}
+          title={
+            messagingReady
+              ? 'Send message'
+              : connectionStep === 'waiting-in-queue'
+                ? 'Queue message — sends when the encrypted session finishes updating'
+                : 'Queue message — will send when connected'
+          }
         >
           {messagingReady ? (
             <Send className="h-4 w-4 text-white" />

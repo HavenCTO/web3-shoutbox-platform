@@ -72,9 +72,9 @@ describe('getChatStatusPresentation', () => {
     expect(r.statusText).toBe('Establishing encrypted channel…')
   })
 
-  it('shows syncing members step', () => {
-    const r = pres('active', { connectionStep: 'syncing-members' })
-    expect(r.statusText).toBe('Syncing group members…')
+  it('shows waiting-in-queue step', () => {
+    const r = pres('active', { connectionStep: 'waiting-in-queue' })
+    expect(r.statusText).toBe('In queue — session updating for everyone…')
   })
 
   it('shows syncing history step', () => {
@@ -157,8 +157,8 @@ describe('getChatConnectingBannerText', () => {
     expect(getChatConnectingBannerText('establishing-encryption')).toContain('encryption')
   })
 
-  it('returns step-specific text for syncing-members', () => {
-    expect(getChatConnectingBannerText('syncing-members')).toContain('membership')
+  it('returns step-specific text for waiting-in-queue', () => {
+    expect(getChatConnectingBannerText('waiting-in-queue')).toContain('Matchmaking queue')
   })
 
   it('returns step-specific text for syncing-history', () => {
@@ -171,6 +171,6 @@ describe('getChatConnectingBannerText', () => {
 
   it('returns default text for null step', () => {
     const text = getChatConnectingBannerText(null)
-    expect(text).toContain('Encrypted chat is still connecting')
+    expect(text).toContain('encrypted session is still connecting')
   })
 })
