@@ -214,6 +214,7 @@ export function ChatContainer({
 }
 
 const STEP_ORDER: ConnectionStep[] = [
+  'waiting-in-queue',
   'finding-peers',
   'establishing-encryption',
   'syncing-members',

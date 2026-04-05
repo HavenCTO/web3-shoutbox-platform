@@ -1,6 +1,7 @@
 import type { GroupState } from '@/types/group'
 
 export type ConnectionStep =
+  | 'waiting-in-queue'
   | 'finding-peers'
   | 'establishing-encryption'
   | 'syncing-members'
@@ -80,6 +81,8 @@ export function getChatStatusPresentation(
 
 function getConnectionStepText(step: ConnectionStep | null): string {
   switch (step) {
+    case 'waiting-in-queue':
+      return 'In queue — session connecting…'
     case 'finding-peers':
       return 'Finding peers…'
     case 'establishing-encryption':
@@ -109,6 +112,8 @@ export function shouldShowChatConnectingBanner(input: {
 
 export function getChatConnectingBannerText(step: ConnectionStep | null): string {
   switch (step) {
+    case 'waiting-in-queue':
+      return "You're in the queue. Encrypted chat will connect when your session is ready — usually a few seconds."
     case 'finding-peers':
       return 'Finding peers on the network…'
     case 'establishing-encryption':

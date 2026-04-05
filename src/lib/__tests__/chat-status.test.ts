@@ -61,6 +61,12 @@ describe('getChatStatusPresentation', () => {
   })
 
   // Progressive connection step tests
+  it('shows waiting-in-queue step', () => {
+    const r = pres('active', { connectionStep: 'waiting-in-queue' })
+    expect(r.statusText).toBe('In queue — session connecting…')
+    expect(r.dotClassName).toContain('sky')
+  })
+
   it('shows finding peers step', () => {
     const r = pres('active', { connectionStep: 'finding-peers' })
     expect(r.statusText).toBe('Finding peers…')
@@ -149,6 +155,10 @@ describe('shouldShowChatConnectingBanner', () => {
 })
 
 describe('getChatConnectingBannerText', () => {
+  it('returns step-specific text for waiting-in-queue', () => {
+    expect(getChatConnectingBannerText('waiting-in-queue')).toContain('queue')
+  })
+
   it('returns step-specific text for finding-peers', () => {
     expect(getChatConnectingBannerText('finding-peers')).toContain('Finding peers')
   })
