@@ -1,4 +1,6 @@
 node_modules/
+shoutbox-bot/.env
+shoutbox-bot/radata/
 out/
 build/
 dist/

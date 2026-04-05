@@ -14,6 +14,8 @@ declare module 'gun' {
     peers?: string[]
     localStorage?: boolean
     radisk?: boolean
+    rad?: boolean
+    rfs?: boolean
     [key: string]: any
   }
 
