@@ -14,11 +14,6 @@ import { ok, err } from '@/types/result'
 import { readCurrentGroup, writeGroupToGunDB, subscribeToGroup } from '@/lib/group-lifecycle'
 import { createGroup, addMembersToGroup } from '@/services/messagingService'
 
-export interface EnsureOnlineUsersInGroupResult {
-  /** Ethereum addresses passed to `addMembersByIdentifiers` for peers not yet on the MLS roster. */
-  addedAddresses: string[]
-}
-
 /** Check if a group window has expired. */
 export function isGroupExpired(groupWindow: GroupWindow): boolean {
   return Date.now() > groupWindow.expiresAt
@@ -80,10 +75,25 @@ export async function registerNewGroup(
   }
 }
 
+/** Deterministic tiebreaker for same-epoch conflicts: lowest groupId wins. */
+export function resolveGroupConflict(
+  a: GroupWindow,
+  b: GroupWindow,
+): GroupWindow {
+  if (a.epoch !== b.epoch) return a.epoch > b.epoch ? a : b
+  return a.groupId <= b.groupId ? a : b
+}
+
+/** Short delay to let competing GunDB writes propagate before the final race check. */
+const RACE_SETTLE_MS = 1_500
+
 /**
  * Leader creates an XMTP group with all online users and registers it in GunDB.
- * Race-condition safe: if a group already appeared in GunDB while we were creating,
- * we detect it and return the existing one instead.
+ *
+ * Race-condition safe: after creating the XMTP group we wait a short settle
+ * period, then re-read GunDB. If a competing group appeared at the **same
+ * epoch**, the lowest `groupId` wins deterministically so both clients converge
+ * on the same group without coordination.
  */
 export async function createGroupAsLeader(
   xmtpClient: XmtpClient,
@@ -97,7 +107,11 @@ export async function createGroupAsLeader(
     // Race check: another leader may have written first
     const existing = await readCurrentGroup(gun, roomKey)
     if (existing && !isGroupExpired(existing)) {
-      return ok(existing)
+      // If an existing group is at a higher epoch, defer immediately.
+      // Same-epoch conflicts are handled below after we create our own group.
+      if (existing.epoch > epoch) return ok(existing)
+      // If existing is at the target epoch, no need to create a new group.
+      if (existing.epoch === epoch) return ok(existing)
     }
 
     const addresses = onlineUsers
@@ -112,13 +126,29 @@ export async function createGroupAsLeader(
     const group = groupResult.data
     const inboxId = xmtpClient.inboxId ?? 'unknown'
 
-    // Race check again before writing
+    // Write our candidate group immediately so competing clients see it
+    const ourWindow = await registerNewGroup(gun, roomKey, group.id, epoch, inboxId, windowMinutes)
+    if (!ourWindow.ok) return ourWindow
+
+    // Settle: give competing writes time to propagate via Gun relays
+    await new Promise((r) => setTimeout(r, RACE_SETTLE_MS))
+
+    // Final race check — if another group appeared at the same epoch, tiebreak
     const raceCheck = await readCurrentGroup(gun, roomKey)
     if (raceCheck && !isGroupExpired(raceCheck)) {
-      return ok(raceCheck)
+      const winner = resolveGroupConflict(ourWindow.data, raceCheck)
+      if (winner.groupId !== ourWindow.data.groupId) {
+        // Another group won — re-write GunDB so all peers converge
+        writeGroupToGunDB(gun, roomKey, winner)
+        return ok(winner)
+      }
+      // We won (or tied) — ensure GunDB has our record
+      if (raceCheck.groupId !== ourWindow.data.groupId) {
+        writeGroupToGunDB(gun, roomKey, ourWindow.data)
+      }
     }
 
-    return registerNewGroup(gun, roomKey, group.id, epoch, inboxId, windowMinutes)
+    return ourWindow
   } catch (e) {
     return err(
       new GroupLifecycleError(

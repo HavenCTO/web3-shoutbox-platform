@@ -3,8 +3,7 @@ import type { GroupState } from '@/types/group'
 export type ConnectionStep =
   | 'finding-peers'
   | 'establishing-encryption'
-  /** MLS roster must include everyone in the room — like matchmaking / queue-for-match */
-  | 'waiting-in-queue'
+  | 'syncing-members'
   | 'syncing-history'
   | 'finalizing'
   | 'ready'
@@ -79,8 +78,8 @@ function getConnectionStepText(step: ConnectionStep | null): string {
       return 'Finding peers…'
     case 'establishing-encryption':
       return 'Establishing encrypted channel…'
-    case 'waiting-in-queue':
-      return 'In queue — session updating for everyone…'
+    case 'syncing-members':
+      return 'Syncing group members…'
     case 'syncing-history':
       return 'Loading message history…'
     case 'finalizing':
@@ -108,17 +107,17 @@ export function getChatConnectingBannerText(step: ConnectionStep | null): string
       return 'Finding peers on the network…'
     case 'establishing-encryption':
       return 'Setting up end-to-end encryption — this may take a moment.'
-    case 'waiting-in-queue':
-      return 'Matchmaking queue: the encrypted session is updating while people join or reconnect. This is normal and can take a bit — the page is not stuck. You can type below; messages send when the session is ready.'
+    case 'syncing-members':
+      return 'Syncing group membership — waiting for all participants.'
     case 'syncing-history':
       return 'Loading message history…'
     case 'finalizing':
       return 'Almost ready — finalizing encrypted connection.'
     default:
-      return "You're in the room. The encrypted session is still connecting — usually a few seconds."
+      return "You're in the room. Encrypted chat is still connecting — usually a few seconds."
   }
 }
 
 /** @deprecated Use getChatConnectingBannerText for step-aware text */
 export const CHAT_CONNECTING_BANNER_TEXT =
-  "You're in the room. The encrypted session is still connecting — usually a few seconds."
+  "You're in the room. Encrypted chat is still connecting — usually a few seconds."

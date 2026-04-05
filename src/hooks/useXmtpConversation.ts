@@ -174,7 +174,7 @@ export function useXmtpConversation(
           return
         }
 
-        setConnectionStep('waiting-in-queue')
+        setConnectionStep('syncing-members')
 
         const membersResult = await waitForGroupMembersSettled(
           group,
@@ -188,7 +188,7 @@ export function useXmtpConversation(
           const msg =
             membersResult.reason === 'sync_error'
               ? "Couldn't read the encrypted group roster. Tap to retry."
-              : 'Still in queue — waiting for everyone to join the encrypted session. Tap to retry.'
+              : 'Still joining everyone to encrypted chat. Tap to retry.'
           setError(msg, MEMBER_SETTLE_RETRY_CODE)
           setReadyForGroupId(null)
           readyForGroupIdRef.current = null

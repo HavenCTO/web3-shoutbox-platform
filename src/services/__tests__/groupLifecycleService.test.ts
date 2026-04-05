@@ -15,7 +15,7 @@ vi.mock('@/services/messagingService', () => ({
   addMembersToGroup: vi.fn(),
 }))
 
-import { isGroupExpired, calculateNextEpoch } from '@/services/groupLifecycleService'
+import { isGroupExpired, calculateNextEpoch, resolveGroupConflict } from '@/services/groupLifecycleService'
 import type { GroupWindow } from '@/types/group'
 
 function makeWindow(overrides: Partial<GroupWindow> = {}): GroupWindow {
@@ -53,5 +53,28 @@ describe('calculateNextEpoch', () => {
   it('increments the epoch by 1', () => {
     expect(calculateNextEpoch(0)).toBe(1)
     expect(calculateNextEpoch(41)).toBe(42)
+  })
+})
+
+describe('resolveGroupConflict', () => {
+  it('picks the higher epoch when epochs differ', () => {
+    const a = makeWindow({ groupId: 'zzz', epoch: 1 })
+    const b = makeWindow({ groupId: 'aaa', epoch: 2 })
+    expect(resolveGroupConflict(a, b)).toBe(b)
+    expect(resolveGroupConflict(b, a)).toBe(b)
+  })
+
+  it('picks the lowest groupId when epochs are the same', () => {
+    const a = makeWindow({ groupId: 'a44ff650', epoch: 11 })
+    const b = makeWindow({ groupId: 'fc0934fb', epoch: 11 })
+    expect(resolveGroupConflict(a, b)).toBe(a)
+    expect(resolveGroupConflict(b, a)).toBe(a)
+  })
+
+  it('returns the same window when both are identical', () => {
+    const a = makeWindow({ groupId: 'same-id', epoch: 5 })
+    const b = makeWindow({ groupId: 'same-id', epoch: 5 })
+    // Both have the same groupId so `a` is returned (a <= b)
+    expect(resolveGroupConflict(a, b).groupId).toBe('same-id')
   })
 })

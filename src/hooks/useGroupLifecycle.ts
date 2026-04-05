@@ -13,6 +13,7 @@ import {
   handleLeaderFailover,
   isGroupExpired,
   calculateNextEpoch,
+  resolveGroupConflict,
 } from '@/services/groupLifecycleService'
 import { subscribeToGroup } from '@/lib/group-lifecycle'
 import { teardownActiveGroupForWindowTransition } from '@/lib/windowTransitionTeardown'
@@ -245,15 +246,27 @@ export function useGroupLifecycle(roomKey: string | null) {
 
     const unsub = subscribeToGroup(gun, roomKey, (data) => {
       if (!data || !currentWindow) return
-      if (data.epoch > currentWindow.epoch && !isGroupExpired(data)) {
+      if (isGroupExpired(data)) return
+
+      if (data.epoch > currentWindow.epoch) {
+        // New epoch — adopt unconditionally
         transitionToEpoch(data.epoch)
         activateWindow(data)
+      } else if (
+        data.epoch === currentWindow.epoch &&
+        data.groupId !== currentWindow.groupId
+      ) {
+        // Same-epoch conflict — deterministic tiebreaker (lowest groupId wins)
+        const winner = resolveGroupConflict(currentWindow, data)
+        if (winner.groupId !== currentWindow.groupId) {
+          activateWindow(winner)
+        }
       }
     })
 
     return unsub
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomKey, currentWindow?.epoch, groupState])
+  }, [roomKey, currentWindow?.epoch, currentWindow?.groupId, groupState])
 
   // ── Retry on error ──
   useEffect(() => {
