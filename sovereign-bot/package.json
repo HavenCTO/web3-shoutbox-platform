@@ -1,0 +1,25 @@
+{
+  "name": "sovereign-shoutbox-bot",
+  "version": "0.1.0",
+  "description": "Sovereign shoutbox bot — wires haven-core kernel with haven-adapters + GunDB presence",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "tsx watch src/main.ts"
+  },
+  "dependencies": {
+    "haven-core": "file:../newrepos/haven-core",
+    "haven-adapters": "file:../newrepos/haven-adapters",
+    "@xmtp/node-sdk": "^6.0.0",
+    "dotenv": "^17.4.0",
+    "gun": "^0.2020.1241",
+    "viem": "^2.47.6",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
