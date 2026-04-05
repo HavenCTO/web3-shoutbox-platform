@@ -1,8 +1,7 @@
 import Gun from 'gun'
 import type { GunInstance } from 'gun'
 import { env } from '@/config/env'
-
-const GUN_NAMESPACE = 'shoutbox-v1'
+import { GUN_NAMESPACE } from '@/lib/gunNamespace'
 
 let instance: GunInstance | null = null
 

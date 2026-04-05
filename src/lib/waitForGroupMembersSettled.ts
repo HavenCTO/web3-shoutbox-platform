@@ -10,6 +10,13 @@ export interface WaitForGroupMembersSettledOptions {
   minTotalWaitMs: number
   /** Stop polling after this duration even if `maxAttempts` is not reached. */
   maxTotalWaitMs: number
+  /**
+   * After this many ms, accept a stable roster even when some required inboxes
+   * are missing (e.g. a bot whose address couldn't be added to the MLS group).
+   * The roster must still have ≥ 2 members and be consecutively stable.
+   * Set to `Infinity` to disable this fallback.
+   */
+  stableRosterFallbackMs: number
 }
 
 export const DEFAULT_WAIT_MEMBERS_SETTLED_OPTIONS: WaitForGroupMembersSettledOptions = {
@@ -18,6 +25,7 @@ export const DEFAULT_WAIT_MEMBERS_SETTLED_OPTIONS: WaitForGroupMembersSettledOpt
   requiredConsecutiveStable: 2,
   minTotalWaitMs: 1200,
   maxTotalWaitMs: MEMBER_SETTLE_MAX_WAIT_MS,
+  stableRosterFallbackMs: 8_000,
 }
 
 export type WaitForGroupMembersSettledResult =
@@ -46,9 +54,23 @@ function logDevRosterPresenceMismatch(params: {
 }
 
 /**
+ * Minimum number of MLS members required for the stable-roster fallback to
+ * accept a roster that is missing some presence users.  A roster with only the
+ * creator (1 member) is never accepted early — at least one other peer must
+ * have been added.
+ */
+const STABLE_FALLBACK_MIN_MEMBERS = 2
+
+/**
  * Blocks until MLS membership includes every required inbox (typically all users
  * currently online in the room) and the member set stops changing across syncs.
  * Otherwise early sends encrypt for an incomplete epoch and peers never decrypt until they refresh.
+ *
+ * **Stable-roster fallback:** if some required inboxes never appear (e.g. a bot
+ * whose Ethereum address couldn't be resolved to an XMTP identity), the function
+ * will still succeed once the roster has been stable for `requiredConsecutiveStable`
+ * polls, has ≥ 2 members, and `stableRosterFallbackMs` has elapsed.  This prevents
+ * unreachable presence entries from blocking chat for all human users.
  */
 export async function waitForGroupMembersSettled(
   group: Pick<Group, 'sync' | 'members'>,
@@ -59,6 +81,9 @@ export async function waitForGroupMembersSettled(
   const start = Date.now()
   let prevFingerprint: string | null = null
   let consecutiveStable = 0
+  /** Tracks roster stability independently — even when not all required inboxes are present. */
+  let prevFingerprintAny: string | null = null
+  let consecutiveStableAny = 0
   let lastRequiredInboxCount = 0
   let lastUniqueMemberInboxCount = 0
 
@@ -82,6 +107,7 @@ export async function waitForGroupMembersSettled(
           ? inboxSet.size >= 1
           : requiredSorted.every((id) => inboxSet.has(id)) && inboxSet.size >= minInboxes
 
+      // ── Primary path: all required inboxes present + stable ──
       if (!allRequiredPresent || fp.length === 0) {
         prevFingerprint = null
         consecutiveStable = 0
@@ -94,6 +120,37 @@ export async function waitForGroupMembersSettled(
       } else {
         prevFingerprint = fp
         consecutiveStable = 1
+      }
+
+      // ── Fallback path: roster stable but some required inboxes missing ──
+      // Tracks stability regardless of whether all required inboxes are present.
+      if (fp.length === 0) {
+        prevFingerprintAny = null
+        consecutiveStableAny = 0
+      } else if (fp === prevFingerprintAny) {
+        consecutiveStableAny += 1
+      } else {
+        prevFingerprintAny = fp
+        consecutiveStableAny = 1
+      }
+
+      if (
+        !allRequiredPresent &&
+        consecutiveStableAny >= options.requiredConsecutiveStable &&
+        inboxSet.size >= STABLE_FALLBACK_MIN_MEMBERS
+      ) {
+        const elapsed = Date.now() - start
+        if (elapsed >= options.stableRosterFallbackMs) {
+          if (import.meta.env.DEV) {
+            console.debug(
+              '[waitForGroupMembersSettled] stable-roster fallback: accepting roster with %d/%d required inboxes after %dms',
+              inboxSet.size,
+              requiredSorted.length,
+              elapsed,
+            )
+          }
+          return { ok: true }
+        }
       }
     } catch {
       return { ok: false, reason: 'sync_error' }

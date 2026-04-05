@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
 import { Loader2 } from 'lucide-react'
 import { useEmbed } from '@/hooks/useEmbed'
+import { useGunPresenceSyncStore } from '@/stores/gunPresenceSyncStore'
 import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { ChatContainer } from '@/components/chat/ChatContainer'
@@ -35,6 +36,7 @@ export function EmbedShoutboxPage() {
   )
 
   const room = useShoutboxRoom(roomUrl)
+  const presenceDegraded = useGunPresenceSyncStore((s) => s.syncStatus === 'degraded')
 
   useEffect(() => {
     if (rootRef.current) return enableAutoResize(rootRef.current)
@@ -105,9 +107,18 @@ export function EmbedShoutboxPage() {
     >
       {/* Compact presence bar */}
       {showPresence && room.onlineUsers.length > 0 && (
-        <div className={`flex items-center gap-1 border-b px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs ${isDark ? 'border-gray-700 bg-gray-800 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-          {room.onlineUsers.length} online
+        <div
+          className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs ${isDark ? 'border-gray-700 bg-gray-800 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}
+        >
+          <span className="inline-flex items-center gap-1">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${presenceDegraded ? 'bg-amber-500' : 'bg-green-500'}`}
+            />
+            {room.onlineUsers.length} online
+          </span>
+          {presenceDegraded && (
+            <span className={isDark ? 'text-amber-400' : 'text-amber-700'}>Presence relay unreachable</span>
+          )}
         </div>
       )}
 

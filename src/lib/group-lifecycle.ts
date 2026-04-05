@@ -7,7 +7,7 @@
 
 import type { GunInstance } from 'gun'
 import type { GroupWindow } from '@/types/group'
-import { GUN_NAMESPACE } from '@/lib/gun'
+import { GUN_NAMESPACE } from '@/lib/gunNamespace'
 
 function groupRef(gun: GunInstance, roomKey: string): GunInstance {
   return gun.get(GUN_NAMESPACE).get('groups').get(roomKey)

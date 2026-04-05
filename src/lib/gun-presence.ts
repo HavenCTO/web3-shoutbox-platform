@@ -6,7 +6,9 @@
  */
 
 import type { GunInstance } from 'gun'
-import { GUN_NAMESPACE } from '@/lib/gun'
+import { GUN_NAMESPACE } from '@/lib/gunNamespace'
+import type { GunPutAck } from '@/lib/gunPresenceRelayHealth'
+import { recordPresencePutAck } from '@/stores/gunPresenceSyncStore'
 
 export interface GunPresenceData {
   inboxId: string
@@ -25,7 +27,9 @@ export function writePresence(
   roomKey: string,
   record: GunPresenceData,
 ): void {
-  presenceRef(gun, roomKey, record.inboxId).put(record)
+  presenceRef(gun, roomKey, record.inboxId).put(record, (ack: GunPutAck) => {
+    recordPresencePutAck(ack)
+  })
 }
 
 /** Clear presence by setting timestamp to 0 and status to offline */
@@ -34,7 +38,9 @@ export function clearPresence(
   roomKey: string,
   inboxId: string,
 ): void {
-  presenceRef(gun, roomKey, inboxId).put({ ts: 0, status: 'offline' })
+  presenceRef(gun, roomKey, inboxId).put({ ts: 0, status: 'offline' }, (ack: GunPutAck) => {
+    recordPresencePutAck(ack)
+  })
 }
 
 /**

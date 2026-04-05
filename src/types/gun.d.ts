@@ -2,7 +2,7 @@
 declare module 'gun' {
   export interface GunInstance {
     get(key: string): GunInstance
-    put(data: any, cb?: (ack: { err?: string }) => void): GunInstance
+    put(data: any, cb?: (ack: { err?: string; lack?: boolean }) => void): GunInstance
     on(cb: (data: any, key: string) => void): GunInstance
     once(cb?: (data: any, key: string) => void): GunInstance
     map(): GunInstance

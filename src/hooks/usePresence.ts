@@ -4,6 +4,7 @@ import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { usePresenceStore } from '@/stores/presenceStore'
 import { joinRoom, leaveRoom } from '@/services/presenceService'
+import { resetPresenceSyncHealth } from '@/stores/gunPresenceSyncStore'
 
 /**
  * Manages presence lifecycle for the current user in a room.
@@ -17,6 +18,10 @@ export function usePresence(roomKey: string | null): void {
   const { setPresent, clearPresence } = usePresenceStore()
   const cleanupRef = useRef<(() => void) | null>(null)
   const stateRef = useRef({ roomKey: null as string | null, inboxId: null as string | null })
+
+  useEffect(() => {
+    resetPresenceSyncHealth()
+  }, [roomKey])
 
   useEffect(() => {
     // Leave previous room if state changed

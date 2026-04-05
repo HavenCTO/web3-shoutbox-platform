@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { electLeader, amILeader } from '@/lib/leader-election'
+import {
+  electLeader,
+  amILeader,
+  electLeaderWhenPresenceSynced,
+  amILeaderWhenPresenceSynced,
+} from '@/lib/leader-election'
 import type { OnlineUser } from '@/types/presence'
 
 function user(inboxId: string, isOnline = true): OnlineUser {
@@ -62,5 +67,36 @@ describe('amILeader', () => {
 
   it('returns false when user list is empty', () => {
     expect(amILeader('aaa', [])).toBe(false)
+  })
+})
+
+describe('electLeaderWhenPresenceSynced', () => {
+  it('returns null when sync status is not synced', () => {
+    const users = [user('aaa'), user('bbb')]
+    expect(electLeaderWhenPresenceSynced('unknown', users)).toBeNull()
+    expect(electLeaderWhenPresenceSynced('degraded', users)).toBeNull()
+  })
+
+  it('delegates to electLeader when synced', () => {
+    const users = [user('ccc'), user('aaa')]
+    expect(electLeaderWhenPresenceSynced('synced', users)).toBe('aaa')
+  })
+})
+
+describe('amILeaderWhenPresenceSynced', () => {
+  it('returns false when sync status is not synced', () => {
+    const users = [user('aaa')]
+    expect(amILeaderWhenPresenceSynced('unknown', 'aaa', users)).toBe(false)
+    expect(amILeaderWhenPresenceSynced('degraded', 'aaa', users)).toBe(false)
+  })
+
+  it('returns false when inbox id is null', () => {
+    expect(amILeaderWhenPresenceSynced('synced', null, [user('aaa')])).toBe(false)
+  })
+
+  it('delegates to amILeader when synced', () => {
+    const users = [user('bbb'), user('aaa')]
+    expect(amILeaderWhenPresenceSynced('synced', 'aaa', users)).toBe(true)
+    expect(amILeaderWhenPresenceSynced('synced', 'bbb', users)).toBe(false)
   })
 })

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import { hashUrl } from '@/lib/url-utils'
 import { usePresence } from '@/hooks/usePresence'
 import { useOnlineUsers } from '@/hooks/useOnlineUsers'
@@ -7,6 +8,9 @@ import { useXmtpConversation } from '@/hooks/useXmtpConversation'
 import { useLeaderElection } from '@/hooks/useLeaderElection'
 import { usePresenceStore } from '@/stores/presenceStore'
 import { useChatStore } from '@/stores/chatStore'
+import { useGunPresenceSyncStore } from '@/stores/gunPresenceSyncStore'
+
+const PRESENCE_RELAY_TOAST_ID = 'presence-relay-degraded'
 
 /**
  * High-level orchestration hook for a single shoutbox room.
@@ -33,6 +37,19 @@ export function useShoutboxRoom(roomUrl: string) {
   const { activeGroupId, groupState, currentWindow, error: groupError } = useGroupLifecycle(roomKey)
 
   const onlineUsers = usePresenceStore((s) => s.onlineUsers)
+  const presenceSyncStatus = useGunPresenceSyncStore((s) => s.syncStatus)
+
+  useEffect(() => {
+    if (presenceSyncStatus === 'degraded') {
+      toast.warning(
+        'Presence relay unreachable — online count and host role may be wrong until the connection is restored.',
+        { id: PRESENCE_RELAY_TOAST_ID, duration: 12_000 },
+      )
+    } else {
+      toast.dismiss(PRESENCE_RELAY_TOAST_ID)
+    }
+  }, [presenceSyncStatus])
+
   const conversationOptions = useMemo(
     () => ({
       getRequiredInboxIds: (): readonly string[] =>
