@@ -20,12 +20,17 @@ import WebSocket from "ws";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { existsSync, mkdirSync } from "node:fs";
-import type { Hex } from "viem";
+import { hexToBytes, type Hex } from "viem";
 import type { XmtpEnv } from "@xmtp/node-sdk";
 
 // ── haven-core: kernel + types ──
 import { SovereignAgentKernel } from "haven-core/kernel";
-import { BudgetCategory, type TreasuryReport } from "haven-core/types";
+import {
+  BudgetCategory,
+  SigningType,
+  type SigningResult,
+  type TreasuryReport,
+} from "haven-core/types";
 
 // ── haven-adapters: chain + provider adapters ──
 import { createEthereumCryptoAdapter, XmtpChannel, LmStudioProvider } from "haven-adapters";
@@ -264,6 +269,56 @@ function buildSystemPrompt(
   return lines.join("\n");
 }
 
+function isSigningResult(payload: unknown): payload is SigningResult {
+  if (!payload || typeof payload !== "object") return false;
+  const candidate = payload as Partial<SigningResult>;
+  return (
+    typeof candidate.requestId === "string" &&
+    typeof candidate.signature === "string" &&
+    typeof candidate.success === "boolean" &&
+    typeof candidate.error === "string"
+  );
+}
+
+function createKernelSigner(
+  kernel: SovereignAgentKernel,
+  requestorId: string
+): (message: string) => Promise<Uint8Array> {
+  return (message: string) =>
+    new Promise<Uint8Array>((resolve, reject) => {
+      const requestId = `xmtp_sign_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const timeoutMs = 15_000;
+
+      const timeout = setTimeout(() => {
+        unsubscribe();
+        reject(new Error(`Wallet signing timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      const unsubscribe = kernel.wallet.subscribe((evt: { event: string; payload: unknown }) => {
+        if (evt.event !== "eSignResult") return;
+        if (!isSigningResult(evt.payload)) return;
+        if (evt.payload.requestId !== requestId) return;
+
+        clearTimeout(timeout);
+        unsubscribe();
+
+        if (!evt.payload.success) {
+          reject(new Error(evt.payload.error || "Wallet signing failed"));
+          return;
+        }
+        resolve(hexToBytes(evt.payload.signature as `0x${string}`));
+      });
+
+      kernel.wallet.enqueue("eSignRequest", {
+        id: requestId,
+        signingType: SigningType.MESSAGE,
+        payload: message,
+        chain: "ethereum",
+        requestor: requestorId,
+      });
+    });
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -339,15 +394,17 @@ async function main(): Promise<void> {
 
   // ── 8. Plug in XMTP channel (kernel doesn't know about XMTP) ──
   console.log("[sovereign-bot] Creating XMTP client (first run can take 1-2 minutes)...");
+  const xmtpMachineId = "xmtpChannel";
   const xmtp = new XmtpChannel(
     kernel.registry,
     kernel.bus,
     {
-      privateKey: cfg.privateKey,
+      walletAddress: kernel.wallet.getAddress(),
+      signMessage: createKernelSigner(kernel, xmtpMachineId),
       xmtpEnv: cfg.xmtpEnv,
       dbPath: cfg.dbPath,
     },
-    "xmtpChannel"
+    xmtpMachineId
   );
   await xmtp.initialize();
   xmtp.enqueue("eStart");
