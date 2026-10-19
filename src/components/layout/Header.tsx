@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { Sun, Moon, MessageSquare, LayoutGrid, Settings, Menu, X } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { ConnectWallet } from '@/components/auth/ConnectWallet'
+import { IdentityBadge } from '@/components/auth/IdentityBadge'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
@@ -56,7 +56,7 @@ export function Header() {
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <ConnectWallet />
+          <IdentityBadge />
         </div>
 
         {/* Mobile hamburger */}
@@ -99,7 +99,7 @@ export function Header() {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <ConnectWallet />
+            <IdentityBadge />
           </div>
         </div>
       )}

@@ -11,13 +11,13 @@ const base = {
 }
 
 describe('getMessageInputPlaceholder', () => {
-  it('asks to connect when wallet disconnected', () => {
+  it('shows joining when guest identity is not ready yet', () => {
     expect(
       getMessageInputPlaceholder({ ...base, isConnected: false }),
-    ).toBe('Connect wallet to chat')
+    ).toBe('Joining chat…')
   })
 
-  it('shows XMTP setup when wallet connected but XMTP not ready', () => {
+  it('shows XMTP setup when identity exists but XMTP not ready', () => {
     expect(
       getMessageInputPlaceholder({ ...base, xmtpReady: false }),
     ).toBe('Setting up messaging…')

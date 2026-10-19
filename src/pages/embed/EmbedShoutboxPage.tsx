@@ -1,13 +1,9 @@
 import { useEffect, useRef, useMemo } from 'react'
-import { useAccount } from 'wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { Loader2 } from 'lucide-react'
 import { useEmbed } from '@/hooks/useEmbed'
 import { useGunPresenceSyncStore } from '@/stores/gunPresenceSyncStore'
 import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { ChatContainer } from '@/components/chat/ChatContainer'
-import { Skeleton } from '@/components/ui/Skeleton'
 
 const DEFAULT_ROOM = 'https://shoutbox.example.com/default'
 
@@ -26,9 +22,7 @@ function resolveRoom(configRoom?: string, commandRoom?: string): string {
 export function EmbedShoutboxPage() {
   const rootRef = useRef<HTMLDivElement>(null)
   const { embedConfig, emitEvent, enableAutoResize, commandRoom, commandTheme } = useEmbed()
-  const { isConnected } = useAccount()
-  const { status: xmtpStatus } = useXmtpClient()
-  const { open } = useAppKit()
+  const { status: xmtpStatus, retry } = useXmtpClient()
 
   const roomUrl = useMemo(
     () => resolveRoom(embedConfig.room, commandRoom),
@@ -58,8 +52,8 @@ export function EmbedShoutboxPage() {
 
   const bg = isDark ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
 
-  // Not connected
-  if (!isConnected) {
+  // XMTP failed — chat renders immediately otherwise; joining runs in the background.
+  if (xmtpStatus === 'error') {
     return (
       <div
         ref={rootRef}
@@ -67,34 +61,14 @@ export function EmbedShoutboxPage() {
         style={{ maxHeight: maxHeight ? `${maxHeight}px` : undefined, minWidth: 280 }}
       >
         <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          Connect your wallet to join the chat
+          Couldn’t join the chat
         </p>
         <button
-          onClick={() => open()}
+          onClick={retry}
           className="focus-ring rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors sm:px-4 sm:py-2 sm:text-sm"
         >
-          Connect Wallet
+          Try again
         </button>
-      </div>
-    )
-  }
-
-  // XMTP initializing
-  if (xmtpStatus === 'initializing') {
-    return (
-      <div
-        ref={rootRef}
-        className={`animate-fade-in flex h-screen w-screen flex-col items-center justify-center gap-3 p-3 ${bg}`}
-        style={{ maxHeight: maxHeight ? `${maxHeight}px` : undefined, minWidth: 280 }}
-      >
-        <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
-        <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-          Initializing encrypted messaging…
-        </p>
-        <div className="w-full max-w-xs space-y-2">
-          <Skeleton className="h-2 w-3/4 mx-auto" />
-          <Skeleton className="h-2 w-1/2 mx-auto" />
-        </div>
       </div>
     )
   }

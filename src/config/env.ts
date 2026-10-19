@@ -12,9 +12,8 @@ import { z } from 'zod'
 import { normalizeViteAppUrl } from './normalizeViteAppUrl'
 
 const envSchema = z.object({
-  VITE_WALLETCONNECT_PROJECT_ID: z
-    .string()
-    .min(1, 'WalletConnect Project ID is required'),
+  // No longer used: chat identity is auto-generated locally, no wallet connection.
+  VITE_WALLETCONNECT_PROJECT_ID: z.string().optional().default(''),
 
   VITE_XMTP_ENV: z.enum(['dev', 'production'], {
     message: 'XMTP environment must be "dev" or "production"',

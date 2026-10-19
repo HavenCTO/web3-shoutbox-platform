@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router'
-import { useAccount } from 'wagmi'
 import {
   parseEmbedConfig,
   sendToParent,
@@ -20,8 +19,8 @@ export function useEmbed() {
     typeof window !== 'undefined' &&
     (window.location.pathname.startsWith('/embed/') || window.self !== window.top)
 
-  const { isConnected, address } = useAccount()
-  const { inboxId, status: xmtpStatus } = useXmtpClient()
+  const { inboxId, status: xmtpStatus, address } = useXmtpClient()
+  const isConnected = xmtpStatus === 'ready'
   const onlineUsers = usePresenceStore((s) => s.onlineUsers)
 
   // Track previous values for change detection
@@ -80,7 +79,7 @@ export function useEmbed() {
     return unsubCommands
   }, [isEmbed]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Emit wallet-connected / wallet-disconnected on change
+  // Emit wallet-connected / wallet-disconnected on change (event names kept for host-page compatibility; identity is now auto-generated)
   useEffect(() => {
     if (!isEmbed) return
     if (isConnected && !prevConnected.current) {

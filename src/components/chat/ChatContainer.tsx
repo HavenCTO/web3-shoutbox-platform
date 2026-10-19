@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { useAccount } from 'wagmi'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
+import { useAuthStore } from '@/stores/authStore'
 import { buildInboxAddressLookup } from '@/lib/inbox-display'
 import {
   getChatConnectingBannerText,
@@ -56,7 +56,8 @@ export function ChatContainer({
   isAutoRecovering = false,
   queuedMessageCount = 0,
 }: ChatContainerProps) {
-  const { isConnected, address } = useAccount()
+  const address = useAuthStore((s) => s.address)
+  const isConnected = Boolean(address)
   const { inboxId, status: xmtpStatus } = useXmtpClient()
 
   const inboxToAddress = useMemo(

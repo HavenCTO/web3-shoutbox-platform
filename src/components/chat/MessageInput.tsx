@@ -24,7 +24,7 @@ function getPlaceholder(
   messagingReady: boolean,
   allowQueueing: boolean,
 ): string {
-  if (!isConnected) return 'Connect wallet to chat'
+  if (!isConnected) return 'Joining chat…'
   if (!xmtpReady) return 'Setting up messaging…'
   if (groupState === 'waiting-for-peers' && allowQueueing) {
     return 'Type a message — it will send when someone joins…'

@@ -1,6 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { Toaster } from 'sonner'
-import { Web3Provider } from '@/components/providers/Web3Provider'
 import { XmtpProvider } from '@/components/providers/XmtpProvider'
 import { GunProvider } from '@/components/providers/GunProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
@@ -35,8 +34,7 @@ const router = createBrowserRouter([
 export function App() {
   return (
     <ErrorBoundary context="App">
-      <Web3Provider>
-        <XmtpProvider>
+      <XmtpProvider>
           <GunProvider>
             <ThemeProvider>
               <RouterProvider router={router} />
@@ -49,8 +47,7 @@ export function App() {
               />
             </ThemeProvider>
           </GunProvider>
-        </XmtpProvider>
-      </Web3Provider>
+      </XmtpProvider>
     </ErrorBoundary>
   )
 }

@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
-import { useAccount } from 'wagmi'
 import { Crown, Hash, Globe } from 'lucide-react'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
-import { ConnectWallet } from '@/components/auth/ConnectWallet'
 import { ChatContainer } from '@/components/chat/ChatContainer'
-import { XmtpStepIndicator } from '@/components/ui/XmtpStepIndicator'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { GroupState } from '@/types/group'
 
@@ -40,8 +37,7 @@ export function ShoutboxPage() {
 }
 
 function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
-  const { isConnected } = useAccount()
-  const { status: xmtpStatus } = useXmtpClient()
+  const { status: xmtpStatus, retry } = useXmtpClient()
 
   const [urlInput, setUrlInput] = useState(initialRoom)
   const [debouncedUrl, setDebouncedUrl] = useState(initialRoom)
@@ -59,34 +55,17 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
   const room = useShoutboxRoom(debouncedUrl)
   const stateInfo = useMemo(() => groupStateLabel(room.groupState), [room.groupState])
 
-  // Not connected
-  if (!isConnected) {
-    return (
-      <div className="animate-fade-in flex h-full flex-col items-center justify-center gap-6 p-4">
-        <div className="text-center">
-          <h1 className="mb-2 text-xl font-bold text-gray-100 sm:text-2xl">Web3 Shoutbox</h1>
-          <p className="text-sm text-gray-400">Connect your wallet to start chatting</p>
-        </div>
-        <ConnectWallet />
-      </div>
-    )
-  }
-
-  // XMTP initializing — step indicator
-  if (xmtpStatus === 'initializing') {
-    return (
-      <div className="animate-fade-in flex h-full flex-col items-center justify-center gap-4 p-4">
-        <XmtpStepIndicator status={xmtpStatus} />
-      </div>
-    )
-  }
-
-  // XMTP error
+  // XMTP error — chat is shown immediately otherwise; setup runs in the background.
   if (xmtpStatus === 'error') {
     return (
       <div className="animate-fade-in flex h-full flex-col items-center justify-center gap-4 p-4">
-        <p className="text-red-400 text-sm">Failed to initialize messaging</p>
-        <ConnectWallet />
+        <p className="text-red-400 text-sm">Failed to join the chat</p>
+        <button
+          onClick={retry}
+          className="focus-ring rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+        >
+          Try again
+        </button>
       </div>
     )
   }

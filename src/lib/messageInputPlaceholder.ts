@@ -22,7 +22,7 @@ export function getMessageInputPlaceholder(params: MessageInputPlaceholderParams
     allowQueueing,
     connectionStep,
   } = params
-  if (!isConnected) return 'Connect wallet to chat'
+  if (!isConnected) return 'Joining chat…'
   if (!xmtpReady) return 'Setting up messaging…'
   if (groupState !== 'active' && groupState !== 'expiring') return 'Waiting for session…'
   if (!messagingReady && allowQueueing) {

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { useAccount } from 'wagmi'
-import { Sun, Moon, Monitor, Wallet, Radio, Info, User } from 'lucide-react'
+import { Sun, Moon, Monitor, Radio, Info, User } from 'lucide-react'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
+import { clearEphemeralIdentity } from '@/lib/ephemeral-identity'
 import { env } from '@/config/env'
 import { cn } from '@/lib/utils'
 
@@ -29,8 +29,7 @@ function getCustomPeers(): string[] {
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const { address, chainId, isConnected } = useAccount()
-  const { inboxId } = useXmtpClient()
+  const { inboxId, displayName: aliasName, status } = useXmtpClient()
 
   const [displayName, setDisplayName] = useState(() => localStorage.getItem(DISPLAY_NAME_KEY) || '')
   const [customPeerInput, setCustomPeerInput] = useState('')
@@ -93,20 +92,26 @@ export function SettingsPage() {
           maxLength={32}
           className="focus-ring w-full rounded-lg bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500"
         />
-        <p className="mt-1 text-xs text-gray-500">Stored locally. Currently the app shows wallet addresses.</p>
+        <p className="mt-1 text-xs text-gray-500">Stored locally only.</p>
       </Section>
 
-      {/* Wallet Info */}
-      <Section title="Connected Wallet" icon={Wallet}>
-        {isConnected && address ? (
-          <div className="space-y-1 text-sm">
-            <Row label="Address" value={address} mono />
-            <Row label="Chain ID" value={String(chainId ?? '—')} />
-            <Row label="XMTP Inbox ID" value={inboxId ?? 'Not initialized'} mono />
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No wallet connected</p>
-        )}
+      {/* Guest Identity */}
+      <Section title="Your Identity" icon={User}>
+        <div className="space-y-1 text-sm">
+          <Row label="Chatting as" value={aliasName ?? 'Joining…'} />
+          <Row label="Status" value={status === 'ready' ? 'Connected' : 'Joining…'} />
+          <Row label="XMTP Inbox ID" value={inboxId ?? 'Not initialized'} mono />
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          Your identity was created automatically on this device — no sign-up needed.
+          It stays the same across visits here, but clearing browser data starts you as a new person.
+        </p>
+        <button
+          onClick={() => { clearEphemeralIdentity(); window.location.reload() }}
+          className="focus-ring mt-2 rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 transition-colors"
+        >
+          Start fresh with a new identity
+        </button>
       </Section>
 
       {/* GunDB Relay Peers */}

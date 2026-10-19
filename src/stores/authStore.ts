@@ -6,7 +6,7 @@ interface AuthState {
   chainId: number | undefined
   isConnecting: boolean
   error: string | null
-  setConnected: (address: string, chainId: number) => void
+  setConnected: (address: string, chainId?: number) => void
   setDisconnected: () => void
   setConnecting: (connecting: boolean) => void
   setError: (error: string | null) => void

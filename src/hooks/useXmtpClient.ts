@@ -6,6 +6,10 @@ export type XmtpStatus = 'idle' | 'initializing' | 'ready' | 'error'
 export interface XmtpContextValue {
   client: XmtpClient | null
   inboxId: string | null
+  /** Auto-generated guest identity address (never shown raw in chat UI). */
+  address: string | null
+  /** Friendly alias derived from the address, e.g. "Amber Fox". */
+  displayName: string | null
   status: XmtpStatus
   error: string | null
   retry: () => void
