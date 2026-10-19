@@ -82,6 +82,7 @@ export function useXmtpConversation(
   const [isAutoRecovering, setIsAutoRecovering] = useState(false)
   /** Queued messages typed while connecting — flushed when ready */
   const messageQueueRef = useRef<string[]>([])
+  const [queuedMessageCount, setQueuedMessageCount] = useState(0)
 
   const messagingReady = isConversationReadyForGroup(groupId, readyForGroupId)
 
@@ -100,6 +101,7 @@ export function useXmtpConversation(
   useEffect(() => {
     if (!messagingReady || !groupRef.current) return
     const queue = messageQueueRef.current.splice(0)
+    setQueuedMessageCount(messageQueueRef.current.length)
     if (queue.length === 0) return
 
     const flushQueue = async () => {
@@ -125,7 +127,9 @@ export function useXmtpConversation(
     readyForGroupIdRef.current = null
     setConnectionStep(null)
     setIsAutoRecovering(false)
-    messageQueueRef.current = []
+    // Do NOT clear the message queue here: this effect re-runs when groupId
+    // first becomes non-null, which is exactly when messages queued while
+    // waiting for peers must survive to be flushed once messaging is ready.
     clearMessages()
 
     if (!client || !groupId) return
@@ -365,6 +369,7 @@ export function useXmtpConversation(
       ) {
         // Queue the message for sending when ready
         messageQueueRef.current.push(text)
+        setQueuedMessageCount(messageQueueRef.current.length)
         toast.info('Message queued — will send when connected.')
         return
       }
@@ -433,7 +438,7 @@ export function useXmtpConversation(
     connectionStep,
     isAutoRecovering,
     /** Number of messages queued while connecting */
-    queuedMessageCount: messageQueueRef.current.length,
+    queuedMessageCount,
     showResyncCta,
     showInitRetryCta,
     retryConversationInit,

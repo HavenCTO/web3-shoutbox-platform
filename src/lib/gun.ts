@@ -9,7 +9,9 @@ let instance: GunInstance | null = null
 export function getGunInstance(): GunInstance {
   if (instance) return instance
 
-  const peers = env.VITE_GUN_RELAY_PEERS.split(',').filter(Boolean)
+  const peers = env.VITE_GUN_RELAY_PEERS.split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
 
   instance = Gun({ peers })
   return instance

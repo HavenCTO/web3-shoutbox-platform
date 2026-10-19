@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "relay": "node scripts/gun-relay.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint",

@@ -21,10 +21,14 @@ const envSchema = z.object({
 
   VITE_APP_URL: z.string().url('App URL must be a valid URL'),
 
+  // Presence/group coordination needs a reachable Gun relay. The previous
+  // defaults (a personal ngrok tunnel and peer.wallie.io) are both dead, which
+  // left every browser isolated. Default to the local relay (`npm run relay`);
+  // set VITE_GUN_RELAY_PEERS to a hosted relay URL in production.
   VITE_GUN_RELAY_PEERS: z
     .string()
     .optional()
-    .default(' https://elaine-fugal-supernumerously.ngrok-free.dev/gun,https://peer.wallie.io/gun'),
+    .default('http://localhost:8765/gun'),
 
   VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(5),
 })
