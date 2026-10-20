@@ -32,7 +32,21 @@ export function mergeMemberAddresses(online: readonly string[], standing: readon
   return out
 }
 
+/**
+ * Default standing member: the xmtp-bridge room identity on this project's
+ * agent host. Used when VITE_SHOUTBOX_BRIDGE_ADDRESSES is unset or blank so
+ * rooms seat the bridge without any configuration.
+ */
+export const DEFAULT_BRIDGE_ADDRESSES = '0x26a1525f38a1949a5cb8339fd5225bccd164f2e5'
+
+/** Standing members: explicit config wins; unset/blank falls back to the default bridge. */
+export function resolveBridgeAddresses(raw: string | undefined | null): string[] {
+  const parsed = parseBridgeAddresses(raw)
+  if (parsed.length > 0) return parsed
+  return parseBridgeAddresses(DEFAULT_BRIDGE_ADDRESSES)
+}
+
 /** Standing members from the build-time environment. */
-export const BRIDGE_ADDRESSES: readonly string[] = parseBridgeAddresses(
+export const BRIDGE_ADDRESSES: readonly string[] = resolveBridgeAddresses(
   import.meta.env.VITE_SHOUTBOX_BRIDGE_ADDRESSES,
 )
