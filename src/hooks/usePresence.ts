@@ -3,7 +3,7 @@ import { useGun } from '@/hooks/useGun'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { usePresenceStore } from '@/stores/presenceStore'
-import { joinRoom, leaveRoom } from '@/services/presenceService'
+import { joinRoom } from '@/services/presenceService'
 import { resetPresenceSyncHealth } from '@/stores/gunPresenceSyncStore'
 
 /**

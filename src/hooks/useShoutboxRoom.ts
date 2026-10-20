@@ -89,7 +89,6 @@ export function useShoutboxRoom(roomUrl: string) {
   )
 
   const isTransitioning = groupState === 'transitioning'
-  const isWaitingForPeers = groupState === 'waiting-for-peers'
 
   const showResyncCta = conversationShowResync && !groupError
   const showInitRetryCta = conversationShowInitRetry && !groupError

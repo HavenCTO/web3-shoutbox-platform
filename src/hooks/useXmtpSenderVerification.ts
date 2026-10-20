@@ -44,15 +44,6 @@ export function useXmtpSenderVerification(
     [messages, inboxToAddress],
   )
 
-  const pairsKey = useMemo(
-    () =>
-      pairs
-        .map((p) => `${p.senderInboxId}:${normalizeEthereumAddress(p.displayAddress)}`)
-        .sort()
-        .join('|'),
-    [pairs],
-  )
-
   useEffect(() => {
     if (!client || pairs.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset follows external client/pair state
@@ -83,7 +74,7 @@ export function useXmtpSenderVerification(
     return () => {
       cancelled = true
     }
-  }, [client, pairsKey])
+  }, [client, pairs])
 
   const isAddressVerifiedForSender = useCallback(
     (senderInboxId: string, displayedAddress: string) => {

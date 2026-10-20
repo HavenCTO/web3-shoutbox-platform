@@ -1,4 +1,4 @@
-/* global process, console */
+/* global process, console, setTimeout */
 // Static GunDB relay peer for the Web3 Shoutbox.
 //
 // The shoutbox frontend is static hosting (IPFS / PinMe) with no backend.

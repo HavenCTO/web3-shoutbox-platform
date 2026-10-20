@@ -12,7 +12,7 @@ import { GroupLifecycleError } from '@/types/errors'
 import type { Result } from '@/types/result'
 import { ok, err } from '@/types/result'
 import { readCurrentGroup, writeGroupToGunDB, subscribeToGroup } from '@/lib/group-lifecycle'
-import { createGroup, addMembersToGroup } from '@/services/messagingService'
+import { createGroup } from '@/services/messagingService'
 import { BRIDGE_ADDRESSES, mergeMemberAddresses } from '@/lib/bridgeMembers'
 
 // ── Deferred creation gate ──────────────────────────────────────────────────
