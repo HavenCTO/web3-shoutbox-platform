@@ -30,7 +30,7 @@ const envSchema = z.object({
     .optional()
     .default('http://localhost:8765/gun'),
 
-  VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(5),
+  VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(15),
 })
 
 export type Env = z.infer<typeof envSchema>

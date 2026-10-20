@@ -20,7 +20,7 @@ import {
 import { subscribeToGroup } from '@/lib/group-lifecycle'
 import { teardownActiveGroupForWindowTransition } from '@/lib/windowTransitionTeardown'
 
-const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 5
+const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 15
 const LEADER_FAILOVER_TIMEOUT_MS = 15_000
 const TRANSITION_BUFFER_MS = 30_000
 const RETRY_DELAY_MS = 3_000
