@@ -42,7 +42,8 @@ Web3 Shoutbox is a real-time chat widget that any website can embed via an `<ifr
 3. **Configure environment variables**
    ```bash
    cp .env.local.example .env.local
-   # Edit .env.local — you need a WalletConnect Project ID at minimum
+   # Edit .env.local — set VITE_XMTP_ENV=dev and
+   # VITE_APP_URL=http://localhost:3000
    ```
 
 4. **Run the development server**
@@ -213,9 +214,17 @@ cp .env.local.example .env.local
 |----------|----------|---------|-------------|
 | `VITE_WALLETCONNECT_PROJECT_ID` | No | — | Accepted for backwards compatibility; unused |
 | `VITE_XMTP_ENV` | Yes | — | XMTP network environment: `dev` or `production` |
-| `VITE_APP_URL` | Yes | — | Application base URL (e.g., `http://localhost:3000`) |
+| `VITE_APP_URL` | Yes | — | Public base URL where the app is served. A full URL or a bare hostname both work; bare hostnames are normalized to HTTPS (`shoutbox.pinme.dev` → `https://shoutbox.pinme.dev`). Use `http://localhost:3000` locally. |
 | `VITE_GUN_RELAY_PEERS` | No | `http://localhost:8765/gun` | Comma-separated GunDB relay peer URLs; use a hosted HTTPS relay in production |
 | `VITE_SLIDING_WINDOW_MINUTES` | No | `5` | Duration of each sliding window epoch in minutes |
+| `VITE_SHOUTBOX_BRIDGE_ADDRESSES` | No | — | Optional bridge addresses seated in every room |
+| `VITE_XMTP_MLS_DIAGNOSTICS` | No | `false` | Set to `true` to emit `[xmtp-mls-diagnostics-v1]` JSON in production builds |
+
+`VITE_*` values are embedded in the public browser bundle. Never put private keys,
+API tokens, or other credentials in them.
+
+Unit tests do not require a `.env.local`: `vitest.config.ts` supplies safe test
+defaults for `VITE_XMTP_ENV` and `VITE_APP_URL`.
 
 ## Deployment
 
@@ -227,12 +236,34 @@ pattern as the redhaven and fairhaven repos. There is no server.
 npm run build
 ```
 
+CI (`.github/workflows/ci.yml`) runs unit tests, lint, and a production build on pushes
+and pull requests to `main` and `develop`.
+
 The build also materializes `out/rooms/`, `out/settings/`, and `out/embed/shoutbox/`.
 IPFS gateways have no SPA rewrite, so those copies are what keep deep links and the
 embeddable widget working after a PinMe deploy. `public/_redirects` and `public/_headers`
 only apply on hosts that support them (Netlify, Cloudflare Pages).
 
+### Custom domain
+
+`VITE_APP_URL` is the public base URL shown by the app; it does **not** control where
+PinMe publishes the build. To serve the app at `shoutbox.pinme.dev`, set both:
+
+```env
+VITE_APP_URL=shoutbox.pinme.dev
+PINME_DOMAIN=shoutbox.pinme.dev
+```
+
+`VITE_APP_URL` accepts a bare hostname and normalizes it to
+`https://shoutbox.pinme.dev`. If `PINME_DOMAIN` is omitted, PinMe deploys to its
+default gateway URL, and `VITE_APP_URL` should match that URL instead.
+
 ### Repository configuration
+
+Add configuration under **Settings → Secrets and variables → Actions**. Use
+**repository variables** for `VITE_*` values and `PINME_DOMAIN` — they are public
+build configuration, not secrets. The workflows do not declare a GitHub
+`environment`, so environment-scoped variables are not available.
 
 Required secret:
 
@@ -240,20 +271,25 @@ Required secret:
 |--------|-------------|
 | `PINME_APPKEY` | PinMe API key ([dashboard](https://app.pinme.io) or `pinme show-appkey`) |
 
-Variables (also read from secrets for backwards compatibility with the previous Orbiter
-workflow):
+Variables (the workflows read `vars.*`, then fall back to `secrets.*` for backwards
+compatibility, then to the defaults below):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_XMTP_ENV` | `production` | XMTP network (`dev` or `production`) |
-| `VITE_APP_URL` | `https://web3-shoutbox.pinme.eth.limo/` | Public base URL, used for embed origin validation |
-| `VITE_GUN_RELAY_PEERS` | — | Comma-separated **hosted** GunDB relay URLs. Without this the app falls back to `localhost` and visitors cannot see each other |
+| `VITE_APP_URL` | `https://web3-shoutbox.pinme.eth.limo/` | Public base URL. Bare hostnames are normalized to HTTPS. Set this to the same origin configured in `PINME_DOMAIN` |
+| `VITE_GUN_RELAY_PEERS` | `http://localhost:8765/gun` | Comma-separated **hosted** GunDB relay URLs. Without a hosted relay, visitors cannot see each other |
 | `VITE_SLIDING_WINDOW_MINUTES` | `5` | Sliding window epoch length |
 | `VITE_SHOUTBOX_BRIDGE_ADDRESSES` | — | Optional bridge addresses seated in each room |
-| `PINME_DOMAIN` | — | Custom PinMe domain; omit for the default gateway URL |
+| `PINME_DOMAIN` | — | Custom PinMe domain, e.g. `shoutbox.pinme.dev`. Set together with `VITE_APP_URL` to publish there; omit for the default gateway URL |
 | `VITE_XMTP_MLS_DIAGNOSTICS` | `false` | Set to `true` to emit `[xmtp-mls-diagnostics-v1]` JSON in production builds; keep off normally |
 
 `VITE_WALLETCONNECT_PROJECT_ID` is still accepted as a secret but is unused.
+
+CI passes `vars.X || secrets.X || <default>` to both the test and build steps, so the
+pipeline still works when variables are not configured. CI falls back to `dev` and
+`http://localhost:3000`; the deploy workflow falls back to the production values in the
+table. Unit tests use their own safe defaults and never read repository secrets.
 
 ### Manual deploy
 
@@ -261,7 +297,12 @@ workflow):
 npm ci
 npm run build
 npx pinme@2.0.12 set-appkey "$PINME_APPKEY"
-npx pinme@2.0.12 upload ./out
+
+if [ -n "${PINME_DOMAIN:-}" ]; then
+  npx pinme@2.0.12 upload ./out --domain "$PINME_DOMAIN"
+else
+  npx pinme@2.0.12 upload ./out
+fi
 ```
 
 ### Other static hosts
