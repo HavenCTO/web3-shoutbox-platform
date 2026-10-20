@@ -113,15 +113,53 @@ function wrapError(error: unknown, fallbackCode: string): MessagingError {
 /**
  * Creates a new XMTP group conversation with the given wallet addresses.
  * Retries on transient failures; waits longer on rate limits.
+ *
+ * Presence is untrusted: anyone can write any address into GunDB, and an
+ * address with no registered XMTP inbox makes the whole
+ * `createGroupWithIdentifiers` call fail. To keep one bogus record from
+ * breaking the room, addresses that cannot receive messages are skipped up
+ * front (single batched `canMessage` check). If the check itself fails we
+ * fail open with the full list, preserving the previous behavior.
  */
 export async function createGroup(
   client: XmtpClient,
   memberAddresses: string[],
 ): Promise<Result<Group, MessagingError>> {
   try {
+    let reachable = memberAddresses
+    if (memberAddresses.length > 0) {
+      try {
+        const results = await client.canMessage(
+          memberAddresses.map((addr) => ({
+            identifier: addr.toLowerCase(),
+            identifierKind: IdentifierKind.Ethereum,
+          })),
+        )
+        const skipped = memberAddresses.filter(
+          (addr) => results.get(addr.toLowerCase()) !== true,
+        )
+        if (skipped.length > 0) {
+          console.warn(
+            `[shoutbox] skipping ${skipped.length} address(es) with no XMTP inbox for group creation`,
+          )
+          reachable = memberAddresses.filter((addr) => results.get(addr.toLowerCase()) === true)
+        }
+      } catch {
+        // Reachability check failed (e.g. transient network issue):
+        // proceed with the full list as before.
+      }
+    }
+    if (reachable.length === 0 && memberAddresses.length > 0) {
+      return err(
+        new MessagingError(
+          'None of the member addresses can receive XMTP messages (no registered inbox).',
+          'XMTP_NO_REACHABLE_MEMBERS',
+        ),
+      )
+    }
     const group = await retryWithBackoff(
       async () => {
-        const identifiers = memberAddresses.map((addr) => ({
+        const identifiers = reachable.map((addr) => ({
           identifier: addr.toLowerCase(),
           identifierKind: IdentifierKind.Ethereum,
         }))

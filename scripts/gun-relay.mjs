@@ -1,28 +1,72 @@
 /* global process, console */
-// Local GunDB relay peer.
+// Static GunDB relay peer for the Web3 Shoutbox.
 //
-// Presence and group coordination travel over Gun, which needs at least one
-// reachable relay peer to connect separate browsers. Without it every visitor
-// is an island: they only ever see themselves online, the 2-participant group
-// gate never opens, and queued messages never flush.
+// The shoutbox frontend is static hosting (IPFS / PinMe) with no backend.
+// Browsers are ephemeral Gun peers: without at least one always-on relay,
+// every visitor is an island — they only ever see themselves online, the
+// 2-participant group gate never opens, and queued messages never flush.
+// This process is that always-on ("static") relay.
 //
-// Run:  npm run relay        (listens on GUN_RELAY_PORT, default 8765)
-// Then point the app at it:  VITE_GUN_RELAY_PEERS=http://localhost:8765/gun
+// Local dev:   npm run relay
+// Production:  GUN_RELAY_PORT=8765 GUN_RELAY_DATA=/var/lib/gun-relay \
+//              node scripts/gun-relay.mjs   (or the gun-relay systemd unit)
 //
-// For production, host this (or any Gun relay) somewhere reachable and set
-// VITE_GUN_RELAY_PEERS to its https URL instead.
+// Then point the hosted app at it:
+//   VITE_GUN_RELAY_PEERS=https://<relay-host>/gun
 import http from 'node:http'
+import path from 'node:path'
+import fs from 'node:fs'
 import Gun from 'gun'
+import 'gun/lib/file.js'
 
-const port = Number(process.env.GUN_RELAY_PORT) || 8765
+const HOST = process.env.GUN_RELAY_HOST || '0.0.0.0'
+const PORT = Number(process.env.GUN_RELAY_PORT || process.env.PORT) || 8765
+const DATA_FILE =
+  process.env.GUN_RELAY_DATA ||
+  path.join(process.cwd(), 'data', 'gun', 'relay')
+// Optional upstream mesh peers (comma-separated wss/https URLs). Empty by
+// default: this relay is authoritative for shoutbox presence on its own.
+const PEERS = (process.env.GUN_RELAY_PEERS || '')
+  .split(',')
+  .map((p) => p.trim())
+  .filter(Boolean)
+
+fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true })
+
+const CORS_HEADERS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+}
 
 const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'content-type': 'text/plain' })
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, CORS_HEADERS)
+    res.end()
+    return
+  }
+  // Let Gun's own handler answer /gun (websocket + sync traffic).
+  if (req.url === '/gun' || req.url?.startsWith('/gun/')) return
+  if (req.url === '/healthz' || req.url === '/health') {
+    res.writeHead(200, { 'content-type': 'application/json', ...CORS_HEADERS })
+    res.end(JSON.stringify({ ok: true, service: 'gun-relay' }))
+    return
+  }
+  res.writeHead(200, { 'content-type': 'text/plain', ...CORS_HEADERS })
   res.end('gun relay ok\n')
 })
 
-Gun({ web: server })
+Gun({ web: server, file: DATA_FILE, peers: PEERS })
 
-server.listen(port, () => {
-  console.log(`Gun relay listening on http://localhost:${port}/gun`)
+server.listen(PORT, HOST, () => {
+  console.log(`Gun relay listening on http://${HOST}:${PORT}/gun (data: ${DATA_FILE})`)
 })
+
+function shutdown(signal) {
+  console.log(`Gun relay received ${signal}, shutting down`)
+  server.close(() => process.exit(0))
+  setTimeout(() => process.exit(0), 5000).unref()
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))

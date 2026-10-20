@@ -1,0 +1,37 @@
+# Systemd unit for the Web3 Shoutbox static GunDB relay.
+#
+# Install:
+#   1. Adjust WorkingDirectory to your checkout path below.
+#   2. cp ops/gun-relay.service /etc/systemd/system/gun-relay.service
+#   3. mkdir -p /var/lib/gun-relay
+#   4. systemctl daemon-reload && systemctl enable --now gun-relay
+#
+# The relay only needs the `gun` dependency:
+#   npm install --omit=dev
+[Unit]
+Description=GunDB static relay for Web3 Shoutbox
+Documentation=https://github.com/amark/gun
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# ADJUST: path to your web3-shoutbox-platform checkout.
+WorkingDirectory=/srv/web3-shoutbox-platform
+ExecStart=/usr/bin/node scripts/gun-relay.mjs
+Environment=GUN_RELAY_PORT=8765
+# :: = dual-stack (IPv4 + IPv6). Use 0.0.0.0 for IPv4-only.
+Environment=GUN_RELAY_HOST=::
+Environment=GUN_RELAY_DATA=/var/lib/gun-relay/relay
+# Optional: mesh with upstream relays, comma-separated.
+# Environment=GUN_RELAY_PEERS=
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=20
+StandardOutput=append:/var/log/gun-relay.log
+StandardError=inherit
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

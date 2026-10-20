@@ -198,6 +198,52 @@ If presence (online users) isn't working:
 2. Try adding alternative relays in `VITE_GUN_RELAY_PEERS`
 3. GunDB presence is best-effort — the app continues to work for messaging even if presence fails
 
+## Hosting Your Own Static Relay
+
+The shoutbox frontend is static (IPFS / PinMe) and has no backend, but browsers
+are ephemeral Gun peers — at least one always-on ("static") relay must be
+reachable or visitors never see each other. `scripts/gun-relay.mjs` is that
+relay; run it on any host with Node.js 20+ and point the app at it.
+
+```bash
+npm install --omit=dev   # the relay only needs the `gun` dependency
+GUN_RELAY_PORT=8765 GUN_RELAY_DATA=/var/lib/gun-relay/relay \
+  node scripts/gun-relay.mjs
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GUN_RELAY_PORT` (or `PORT`) | `8765` | TCP port to listen on |
+| `GUN_RELAY_HOST` | `0.0.0.0` | Bind address |
+| `GUN_RELAY_DATA` | `./data/gun/relay` | File backing Gun's persisted graph (survives restarts) |
+| `GUN_RELAY_PEERS` | — | Optional comma-separated upstream relays to mesh with |
+
+The relay serves Gun sync traffic on `/gun` and answers `/healthz` (JSON
+`{"ok":true}`) for monitoring. On a systemd host, install the
+`gun-relay.service` unit so it restarts on failure and on boot:
+
+```bash
+cp ops/gun-relay.service /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now gun-relay
+```
+
+Browsers on an `https://` page block plain `ws://`/`http://` relays as mixed
+content, so the relay must be served over HTTPS. The reference setup puts
+Caddy in front (`/etc/caddy/Caddyfile` — automatic Let's Encrypt certificate,
+proxies everything including `/gun` websockets to `localhost:8765`). The
+hostname can use `sslip.io` wildcard DNS (`<ip-with-dashes>.sslip.io`
+resolves with zero DNS configuration), or your own domain with an A record:
+
+```bash
+apt install caddy   # https://caddyserver.com/docs/install
+cp ops/Caddyfile /etc/caddy/Caddyfile   # adjust the site address
+systemctl enable --now caddy
+```
+
+Then set the hosted app's `VITE_GUN_RELAY_PEERS` to
+`https://<relay-host>/gun` and redeploy. IPFS gateways are HTTPS-only, so
+there is no plain-HTTP option for the production shoutbox.
+
 ### Port Already in Use
 
 If port 3000 is occupied:

@@ -1,0 +1,17 @@
+# TLS front door for the Web3 Shoutbox static GunDB relay.
+#
+# The shoutbox frontend is served over HTTPS, so browsers only accept a
+# wss/https relay (plain ws/http is blocked as mixed content). Caddy
+# terminates TLS with an automatic Let's Encrypt certificate and proxies
+# everything (including /gun websocket upgrades) to the relay on :8765.
+#
+# The hostname uses sslip.io wildcard DNS, which resolves to this host's
+# public IPv4 with no DNS configuration needed. If you own a domain, point
+# an A record at the relay host and replace the site address below.
+108-165-23-53.sslip.io {
+	log {
+		output file /var/log/caddy-access.log
+		format json
+	}
+	reverse_proxy localhost:8765
+}
