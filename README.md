@@ -95,7 +95,7 @@ The widget auto-detects the parent page URL as the chat room. Pass `?room=my-roo
 The shoutbox is a **dual-protocol, browser-only system**:
 
 - **XMTP** handles encrypted message transport — messages are signed with wallet keys and encrypted via MLS
-- **GunDB** handles ephemeral presence — who is currently on the page, tracked via heartbeat TTL
+- **GunDB** handles ephemeral presence — who is currently on the page, tracked via heartbeat TTL. GunDB should be on https if the shoutbox is on https.
 
 These layers are intentionally decoupled. GunDB owns the UI roster; XMTP owns message delivery. Presence changes do not trigger XMTP group mutations.
 
