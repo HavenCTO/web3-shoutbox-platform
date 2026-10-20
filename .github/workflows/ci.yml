@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+# Only actions/checkout is used: the org's Actions policy does not resolve
+# marketplace setup-* actions. Node and npm ship on ubuntu-latest and the
+# lockfile pins everything.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Test
+        run: npm test
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build static export
+        env:
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_XMTP_ENV: ${{ vars.VITE_XMTP_ENV || 'dev' }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL || 'http://localhost:3000' }}
+          VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || 'http://localhost:8765/gun' }}
+          VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES }}
+          VITE_SHOUTBOX_BRIDGE_ADDRESSES: ${{ vars.VITE_SHOUTBOX_BRIDGE_ADDRESSES }}
+          VITE_XMTP_MLS_DIAGNOSTICS: ${{ vars.VITE_XMTP_MLS_DIAGNOSTICS || 'false' }}
+        run: npm run build
+
+      - name: Verify static export
+        run: |
+          set -euo pipefail
+          test -f out/index.html
+          # IPFS has no SPA fallback; these directories are the deploy contract.
+          test -f out/rooms/index.html
+          test -f out/settings/index.html
+          test -f out/embed/shoutbox/index.html
+          du -sh out

@@ -1,0 +1,87 @@
+name: deploy
+
+# Pins the static `out/` export to IPFS with PinMe on every push to main
+# (the redhaven / fairhaven pattern). There is no server: `out/` is the
+# whole application.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Only actions/checkout is used: the org's Actions policy does not resolve
+# marketplace setup-* actions. Node and npm ship on ubuntu-latest and the
+# lockfile pins everything.
+jobs:
+  pinme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PinMe AppKey
+        env:
+          PINME_APPKEY: ${{ secrets.PINME_APPKEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PINME_APPKEY:-}" ]; then
+            echo "PINME_APPKEY secret is not set."
+            echo "  npm install -g pinme && pinme login && pinme show-appkey"
+            echo "  then add it at https://github.com/${{ github.repository }}/settings/secrets/actions"
+            exit 1
+          fi
+          echo "PINME_APPKEY present"
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        env:
+          # Unused by the app today, kept for backwards compatibility.
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_XMTP_ENV: ${{ vars.VITE_XMTP_ENV || secrets.VITE_XMTP_ENV || 'production' }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL || secrets.VITE_APP_URL || 'https://web3-shoutbox.pinme.eth.limo/' }}
+          # Presence and group coordination need a reachable hosted relay.
+          VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || secrets.VITE_GUN_RELAY_PEERS }}
+          VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES || secrets.VITE_SLIDING_WINDOW_MINUTES }}
+          VITE_SHOUTBOX_BRIDGE_ADDRESSES: ${{ vars.VITE_SHOUTBOX_BRIDGE_ADDRESSES || secrets.VITE_SHOUTBOX_BRIDGE_ADDRESSES }}
+          VITE_XMTP_MLS_DIAGNOSTICS: ${{ vars.VITE_XMTP_MLS_DIAGNOSTICS || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VITE_GUN_RELAY_PEERS:-}" ]; then
+            echo "::warning::VITE_GUN_RELAY_PEERS is empty; the deployed app will fall back to http://localhost:8765/gun and visitors will not see each other."
+          fi
+          npm run build
+
+      - name: Verify static export
+        run: |
+          set -euo pipefail
+          test -d out && test -f out/index.html
+          # PinMe/IPFS has no SPA rewrite, so the build materializes routes.
+          test -f out/rooms/index.html
+          test -f out/settings/index.html
+          test -f out/embed/shoutbox/index.html
+          ls -la out | head -30
+          du -sh out
+
+      - name: Authenticate PinMe
+        env:
+          PINME_APPKEY: ${{ secrets.PINME_APPKEY }}
+        run: |
+          set -euo pipefail
+          npx pinme@2.0.12 --version
+          npx pinme@2.0.12 set-appkey "$PINME_APPKEY"
+
+      - name: Deploy to PinMe (IPFS)
+        env:
+          PINME_DOMAIN: ${{ vars.PINME_DOMAIN || secrets.PINME_DOMAIN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PINME_DOMAIN:-}" ]; then
+            npx pinme@2.0.12 upload ./out --domain "$PINME_DOMAIN"
+          else
+            npx pinme@2.0.12 upload ./out
+          fi
+          npx pinme@2.0.12 list -l 3 || true

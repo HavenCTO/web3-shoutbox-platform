@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev:
+        dependency-type: development
+    ignore:
+      # XMTP and the wallet stack are pinned together; upgrades need manual
+      # protocol testing rather than a drive-by dependency bump.
+      - dependency-name: '@xmtp/*'
+      - dependency-name: '@reown/*'
+      - dependency-name: 'wagmi'
+      - dependency-name: 'viem'
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

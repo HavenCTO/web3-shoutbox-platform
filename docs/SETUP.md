@@ -130,7 +130,10 @@ npm run lint
 npm run build
 ```
 
-This runs TypeScript type-checking and Vite's production build. Output goes to the `out/` directory.
+This runs TypeScript type-checking, Vite's production build, and a post-build step that
+materializes `out/rooms/`, `out/settings/`, and `out/embed/shoutbox/`. Output goes to the
+`out/` directory; those route directories are required for IPFS/PinMe deploys, which have
+no SPA rewrite. See the Deployment section in [README](../README.md#deployment).
 
 To preview the production build locally:
 

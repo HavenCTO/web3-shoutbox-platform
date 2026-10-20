@@ -166,6 +166,12 @@ web3-shoutbox-platform/
 │   ├── test-embed.html        # Interactive embed test page
 │   ├── _headers               # CDN headers for iframe embedding
 │   └── _redirects              # SPA fallback redirects
+├── scripts/
+│   ├── copy-spa-routes.mjs    # Materialize routes for IPFS (no SPA rewrite)
+│   └── gun-relay.mjs          # Local GunDB relay
+├── .github/workflows/
+│   ├── ci.yml                 # Tests, lint, static export verification
+│   └── deploy.yml             # Pin `out/` to IPFS with PinMe on main
 ├── docs/                      # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── CONTRIBUTING.md
@@ -205,42 +211,69 @@ cp .env.local.example .env.local
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `VITE_WALLETCONNECT_PROJECT_ID` | Yes | — | WalletConnect Project ID from [Reown Dashboard](https://dashboard.reown.com) |
+| `VITE_WALLETCONNECT_PROJECT_ID` | No | — | Accepted for backwards compatibility; unused |
 | `VITE_XMTP_ENV` | Yes | — | XMTP network environment: `dev` or `production` |
 | `VITE_APP_URL` | Yes | — | Application base URL (e.g., `http://localhost:3000`) |
-| `VITE_GUN_RELAY_PEERS` | No | Public relays | Comma-separated GunDB relay peer URLs |
+| `VITE_GUN_RELAY_PEERS` | No | `http://localhost:8765/gun` | Comma-separated GunDB relay peer URLs; use a hosted HTTPS relay in production |
 | `VITE_SLIDING_WINDOW_MINUTES` | No | `5` | Duration of each sliding window epoch in minutes |
 
 ## Deployment
 
-The shoutbox is a static site — build it and deploy the `out/` directory to any static host.
+The shoutbox is a static site — `out/` is the whole application. Pushes to `main` pin
+that directory to IPFS with PinMe via `.github/workflows/deploy.yml`, the same deployment
+pattern as the redhaven and fairhaven repos. There is no server.
 
 ```bash
 npm run build
 ```
 
-### Vercel
+The build also materializes `out/rooms/`, `out/settings/`, and `out/embed/shoutbox/`.
+IPFS gateways have no SPA rewrite, so those copies are what keep deep links and the
+embeddable widget working after a PinMe deploy. `public/_redirects` and `public/_headers`
+only apply on hosts that support them (Netlify, Cloudflare Pages).
+
+### Repository configuration
+
+Required secret:
+
+| Secret | Description |
+|--------|-------------|
+| `PINME_APPKEY` | PinMe API key ([dashboard](https://app.pinme.io) or `pinme show-appkey`) |
+
+Variables (also read from secrets for backwards compatibility with the previous Orbiter
+workflow):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_XMTP_ENV` | `production` | XMTP network (`dev` or `production`) |
+| `VITE_APP_URL` | `https://web3-shoutbox.pinme.eth.limo/` | Public base URL, used for embed origin validation |
+| `VITE_GUN_RELAY_PEERS` | — | Comma-separated **hosted** GunDB relay URLs. Without this the app falls back to `localhost` and visitors cannot see each other |
+| `VITE_SLIDING_WINDOW_MINUTES` | `5` | Sliding window epoch length |
+| `VITE_SHOUTBOX_BRIDGE_ADDRESSES` | — | Optional bridge addresses seated in each room |
+| `PINME_DOMAIN` | — | Custom PinMe domain; omit for the default gateway URL |
+| `VITE_XMTP_MLS_DIAGNOSTICS` | `false` | Set to `true` to emit `[xmtp-mls-diagnostics-v1]` JSON in production builds; keep off normally |
+
+`VITE_WALLETCONNECT_PROJECT_ID` is still accepted as a secret but is unused.
+
+### Manual deploy
+
+```bash
+npm ci
+npm run build
+npx pinme@2.0.12 set-appkey "$PINME_APPKEY"
+npx pinme@2.0.12 upload ./out
+```
+
+### Other static hosts
+
+Vercel, Netlify, and Cloudflare Pages still work with the same `out/` directory:
 
 ```bash
 npx vercel --prod
-```
-
-Set the build output directory to `out` and add environment variables in the Vercel dashboard.
-
-### Netlify
-
-The `public/_redirects` file handles SPA routing automatically. Deploy via:
-
-```bash
 npx netlify deploy --prod --dir=out
 ```
 
-### Cloudflare Pages
-
-The `public/_headers` file configures iframe embedding headers. Connect your repository in the Cloudflare Pages dashboard with:
-
-- Build command: `npm run build`
-- Build output directory: `out`
+For Cloudflare Pages, use build command `npm run build` and output directory `out`.
 
 ## Documentation
 
