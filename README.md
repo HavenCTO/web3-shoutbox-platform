@@ -99,7 +99,7 @@ The shoutbox is a **dual-protocol, browser-only system**:
 
 These layers are intentionally decoupled. GunDB owns the UI roster; XMTP owns message delivery. Presence changes do not trigger XMTP group mutations.
 
-Groups use a **sliding window model** — instead of one permanent group per URL, groups rotate on a time-based schedule (default: 5 minutes). This avoids the 250-member cap and eliminates expensive `removeMembers` MLS operations.
+Groups use a **sliding window model** — instead of one permanent group per URL, groups rotate on a time-based schedule (default: 15 minutes). This avoids the 250-member cap and eliminates expensive `removeMembers` MLS operations.
 
 👉 **[Full Architecture Doc →](./docs/ARCHITECTURE.md)**
 
@@ -216,7 +216,7 @@ cp .env.local.example .env.local
 | `VITE_XMTP_ENV` | Yes | — | XMTP network environment: `dev` or `production` |
 | `VITE_APP_URL` | Yes | — | Public base URL where the app is served. A full URL or a bare hostname both work; bare hostnames are normalized to HTTPS (`shoutbox.pinme.dev` → `https://shoutbox.pinme.dev`). Use `http://localhost:3000` locally. |
 | `VITE_GUN_RELAY_PEERS` | No | `http://localhost:8765/gun` | Comma-separated GunDB relay peer URLs; use a hosted HTTPS relay in production |
-| `VITE_SLIDING_WINDOW_MINUTES` | No | `5` | Duration of each sliding window epoch in minutes |
+| `VITE_SLIDING_WINDOW_MINUTES` | No | `15` | Duration of each sliding window epoch in minutes |
 | `VITE_SHOUTBOX_BRIDGE_ADDRESSES` | No | — | Optional bridge addresses seated in every room |
 | `VITE_XMTP_MLS_DIAGNOSTICS` | No | `false` | Set to `true` to emit `[xmtp-mls-diagnostics-v1]` JSON in production builds |
 
@@ -290,7 +290,7 @@ compatibility, then to the defaults below):
 | `VITE_XMTP_ENV` | `production` | XMTP network (`dev` or `production`) |
 | `VITE_APP_URL` | `https://web3-shoutbox.pinme.eth.limo/` | Public base URL. Bare hostnames are normalized to HTTPS. Set this to the same origin configured in `PINME_DOMAIN` |
 | `VITE_GUN_RELAY_PEERS` | `http://localhost:8765/gun` | Comma-separated **hosted** GunDB relay URLs. Without a hosted relay, visitors cannot see each other |
-| `VITE_SLIDING_WINDOW_MINUTES` | `5` | Sliding window epoch length |
+| `VITE_SLIDING_WINDOW_MINUTES` | `15` | Sliding window epoch length |
 | `VITE_SHOUTBOX_BRIDGE_ADDRESSES` | — | Optional bridge addresses seated in each room |
 | `PINME_DOMAIN` | — | PinMe subdomain name without a dot (`shoutbox` → `https://shoutbox.pinme.dev`), or a full DNS domain you control (`chat.example.com`). Set together with `VITE_APP_URL`; omit for the default gateway URL |
 | `VITE_XMTP_MLS_DIAGNOSTICS` | `false` | Set to `true` to emit `[xmtp-mls-diagnostics-v1]` JSON in production builds; keep off normally |

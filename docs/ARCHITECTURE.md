@@ -163,7 +163,7 @@ GunDB tracks who is on the page (UI only). XMTP group membership is append-only 
 
 ### 2. Sliding Window Epoch Model
 
-Instead of one permanent XMTP group per URL, groups are created in time-based windows (default: 5 minutes). When a window expires, a new group is created with only the currently-present users.
+Instead of one permanent XMTP group per URL, groups are created in time-based windows (default: 15 minutes). When a window expires, a new group is created with only the currently-present users.
 
 **Why:** This naturally resets the member count (XMTP cap is 250), avoids ever calling `removeMembers`, and provides built-in history segmentation appropriate for ephemeral shoutbox semantics.
 
