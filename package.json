@@ -33,7 +33,7 @@
     "viem": "^2.47.6",
     "wagmi": "^3.6.0",
     "zod": "^4.3.6",
-    "zustand": "^5.0.12"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
