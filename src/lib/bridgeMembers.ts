@@ -37,7 +37,7 @@ export function mergeMemberAddresses(online: readonly string[], standing: readon
  * agent host. Used when VITE_SHOUTBOX_BRIDGE_ADDRESSES is unset or blank so
  * rooms seat the bridge without any configuration.
  */
-export const DEFAULT_BRIDGE_ADDRESSES = '0x26a1525f38a1949a5cb8339fd5225bccd164f2e5'
+export const DEFAULT_BRIDGE_ADDRESSES = '0x90779a7582aafb91b9ad78e9f3a3cba88ed44042'
 
 /** Standing members: explicit config wins; unset/blank falls back to the default bridge. */
 export function resolveBridgeAddresses(raw: string | undefined | null): string[] {
