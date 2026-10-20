@@ -13,6 +13,7 @@ import type { Result } from '@/types/result'
 import { ok, err } from '@/types/result'
 import { readCurrentGroup, writeGroupToGunDB, subscribeToGroup } from '@/lib/group-lifecycle'
 import { createGroup, addMembersToGroup } from '@/services/messagingService'
+import { BRIDGE_ADDRESSES, mergeMemberAddresses } from '@/lib/bridgeMembers'
 
 // ── Deferred creation gate ──────────────────────────────────────────────────
 
@@ -142,7 +143,9 @@ export function resolveGroupConflict(
 const RACE_SETTLE_MS = 1_500
 
 /**
- * Leader creates an XMTP group with all online users and registers it in GunDB.
+ * Leader creates an XMTP group with all online users (plus any standing
+ * members from VITE_SHOUTBOX_BRIDGE_ADDRESSES, e.g. an xmtp-bridge relaying
+ * the room to an agent) and registers it in GunDB.
  *
  * Race-condition safe: after creating the XMTP group we wait a short settle
  * period, then re-read GunDB. If a competing group appeared at the **same
@@ -168,9 +171,10 @@ export async function createGroupAsLeader(
       if (existing.epoch === epoch) return ok(existing)
     }
 
-    const addresses = onlineUsers
-      .filter((u) => u.isOnline)
-      .map((u) => u.address)
+    const addresses = mergeMemberAddresses(
+      onlineUsers.filter((u) => u.isOnline).map((u) => u.address),
+      BRIDGE_ADDRESSES,
+    )
 
     const groupResult = await createGroup(xmtpClient, addresses)
     if (!groupResult.ok) {
