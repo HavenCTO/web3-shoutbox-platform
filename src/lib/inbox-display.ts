@@ -2,8 +2,11 @@ import type { OnlineUser } from '@/types/presence'
 
 /** Shorten a long XMTP inbox id when we have no wallet address to show. */
 export function truncateInboxId(inboxId: string): string {
-  if (inboxId.length <= 14) return inboxId
-  return `${inboxId.slice(0, 8)}…${inboxId.slice(-6)}`
+  const head = 8
+  const tail = 9
+  // Keep short ids intact instead of making them longer than the original.
+  if (inboxId.length <= head + 1 + tail) return inboxId
+  return `${inboxId.slice(0, head)}…${inboxId.slice(-tail)}`
 }
 
 /**

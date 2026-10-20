@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console */
 /**
  * Materialize client-side routes as real directories.
  *

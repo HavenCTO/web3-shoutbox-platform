@@ -22,6 +22,12 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Test
+        env:
+          VITE_XMTP_ENV: ${{ vars.VITE_XMTP_ENV || secrets.VITE_XMTP_ENV || 'dev' }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL || secrets.VITE_APP_URL || 'http://localhost:3000' }}
+          VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || secrets.VITE_GUN_RELAY_PEERS || 'http://localhost:8765/gun' }}
+          VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES || secrets.VITE_SLIDING_WINDOW_MINUTES }}
+          VITE_XMTP_MLS_DIAGNOSTICS: ${{ vars.VITE_XMTP_MLS_DIAGNOSTICS || secrets.VITE_XMTP_MLS_DIAGNOSTICS || 'false' }}
         run: npm test
 
       - name: Lint
@@ -29,13 +35,13 @@ jobs:
 
       - name: Build static export
         env:
-          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
-          VITE_XMTP_ENV: ${{ vars.VITE_XMTP_ENV || 'dev' }}
-          VITE_APP_URL: ${{ vars.VITE_APP_URL || 'http://localhost:3000' }}
-          VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || 'http://localhost:8765/gun' }}
-          VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES }}
-          VITE_SHOUTBOX_BRIDGE_ADDRESSES: ${{ vars.VITE_SHOUTBOX_BRIDGE_ADDRESSES }}
-          VITE_XMTP_MLS_DIAGNOSTICS: ${{ vars.VITE_XMTP_MLS_DIAGNOSTICS || 'false' }}
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ vars.VITE_WALLETCONNECT_PROJECT_ID || secrets.VITE_WALLETCONNECT_PROJECT_ID }}
+          VITE_XMTP_ENV: ${{ vars.VITE_XMTP_ENV || secrets.VITE_XMTP_ENV || 'dev' }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL || secrets.VITE_APP_URL || 'http://localhost:3000' }}
+          VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || secrets.VITE_GUN_RELAY_PEERS || 'http://localhost:8765/gun' }}
+          VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES || secrets.VITE_SLIDING_WINDOW_MINUTES }}
+          VITE_SHOUTBOX_BRIDGE_ADDRESSES: ${{ vars.VITE_SHOUTBOX_BRIDGE_ADDRESSES || secrets.VITE_SHOUTBOX_BRIDGE_ADDRESSES }}
+          VITE_XMTP_MLS_DIAGNOSTICS: ${{ vars.VITE_XMTP_MLS_DIAGNOSTICS || secrets.VITE_XMTP_MLS_DIAGNOSTICS || 'false' }}
         run: npm run build
 
       - name: Verify static export

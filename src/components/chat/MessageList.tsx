@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { ArrowDown, Loader2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolveSenderAddressForDisplay } from '@/lib/inbox-display'
@@ -37,6 +37,7 @@ export function MessageList({
 
   useEffect(() => {
     if (windowEpoch > prevEpochRef.current && prevEpochRef.current > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- epoch changes are an external event
       setShowSessionDivider(true)
       const timer = setTimeout(() => setShowSessionDivider(false), 5000)
       return () => clearTimeout(timer)

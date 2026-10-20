@@ -124,7 +124,8 @@ function createGunMemoryStore() {
     get(file: string, cb: (err?: null, data?: string) => void) {
       queueMicrotask(() => {
         const data = files.get(file);
-        data === undefined ? cb() : cb(null, data);
+        if (data === undefined) cb();
+        else cb(null, data);
       });
     },
     list(cb: (file?: string) => void) {

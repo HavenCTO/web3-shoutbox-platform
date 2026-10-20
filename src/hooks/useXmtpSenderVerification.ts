@@ -55,6 +55,7 @@ export function useXmtpSenderVerification(
 
   useEffect(() => {
     if (!client || pairs.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset follows external client/pair state
       setVerified(new Map())
       return
     }
