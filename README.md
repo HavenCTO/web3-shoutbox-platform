@@ -244,19 +244,30 @@ IPFS gateways have no SPA rewrite, so those copies are what keep deep links and 
 embeddable widget working after a PinMe deploy. `public/_redirects` and `public/_headers`
 only apply on hosts that support them (Netlify, Cloudflare Pages).
 
-### Custom domain
+### Custom domain or PinMe subdomain
 
 `VITE_APP_URL` is the public base URL shown by the app; it does **not** control where
-PinMe publishes the build. To serve the app at `shoutbox.pinme.dev`, set both:
+PinMe publishes the build. PinMe treats the `PINME_DOMAIN` value differently depending
+on whether it contains a dot:
+
+- `shoutbox` (no dot) creates a **PinMe subdomain**: `https://shoutbox.pinme.dev`
+- `shoutbox.pinme.dev` (contains a dot) is treated as a **custom DNS domain** and
+  requires you to control the DNS for `pinme.dev`
+
+Since `pinme.dev` is PinMe's root domain, use the subdomain form to publish at
+`shoutbox.pinme.dev`:
 
 ```env
 VITE_APP_URL=shoutbox.pinme.dev
-PINME_DOMAIN=shoutbox.pinme.dev
+PINME_DOMAIN=shoutbox
 ```
 
 `VITE_APP_URL` accepts a bare hostname and normalizes it to
 `https://shoutbox.pinme.dev`. If `PINME_DOMAIN` is omitted, PinMe deploys to its
 default gateway URL, and `VITE_APP_URL` should match that URL instead.
+
+For a domain you own (for example `chat.example.com`), use the full hostname as
+`PINME_DOMAIN` and configure the DNS records PinMe provides.
 
 ### Repository configuration
 
@@ -281,7 +292,7 @@ compatibility, then to the defaults below):
 | `VITE_GUN_RELAY_PEERS` | `http://localhost:8765/gun` | Comma-separated **hosted** GunDB relay URLs. Without a hosted relay, visitors cannot see each other |
 | `VITE_SLIDING_WINDOW_MINUTES` | `5` | Sliding window epoch length |
 | `VITE_SHOUTBOX_BRIDGE_ADDRESSES` | — | Optional bridge addresses seated in each room |
-| `PINME_DOMAIN` | — | Custom PinMe domain, e.g. `shoutbox.pinme.dev`. Set together with `VITE_APP_URL` to publish there; omit for the default gateway URL |
+| `PINME_DOMAIN` | — | PinMe subdomain name without a dot (`shoutbox` → `https://shoutbox.pinme.dev`), or a full DNS domain you control (`chat.example.com`). Set together with `VITE_APP_URL`; omit for the default gateway URL |
 | `VITE_XMTP_MLS_DIAGNOSTICS` | `false` | Set to `true` to emit `[xmtp-mls-diagnostics-v1]` JSON in production builds; keep off normally |
 
 `VITE_WALLETCONNECT_PROJECT_ID` is still accepted as a secret but is unused.
