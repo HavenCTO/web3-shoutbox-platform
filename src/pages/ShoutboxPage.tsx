@@ -7,7 +7,7 @@ import { ChatContainer } from '@/components/chat/ChatContainer'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { GroupState } from '@/types/group'
 
-const DEFAULT_ROOM = 'https://shoutbox.example.com/default'
+const DEFAULT_ROOM = 'https://shoutbox.pinme.dev/default'
 const DEBOUNCE_MS = 600
 
 function truncateHash(hash: string | null): string {

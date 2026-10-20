@@ -5,7 +5,7 @@ import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { ChatContainer } from '@/components/chat/ChatContainer'
 
-const DEFAULT_ROOM = 'https://shoutbox.example.com/default'
+const DEFAULT_ROOM = 'https://shoutbox.pinme.dev/default'
 
 function resolveRoom(configRoom?: string, commandRoom?: string): string {
   if (commandRoom) return commandRoom
