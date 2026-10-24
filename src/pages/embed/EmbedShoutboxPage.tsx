@@ -82,7 +82,7 @@ export function EmbedShoutboxPage() {
       {/* Compact presence bar */}
       {showPresence && room.onlineUsers.length > 0 && (
         <div
-          className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs ${isDark ? 'border-gray-700 bg-gray-800 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}
+          className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b px-2 py-0.5 text-[11px] sm:px-3 sm:py-1 sm:text-xs ${isDark ? 'border-gray-700 bg-gray-800 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}
         >
           <span className="inline-flex items-center gap-1">
             <span

@@ -31,7 +31,9 @@ export default defineConfig({
     : [
         {
           command: 'npm run relay',
-          url: 'http://localhost:8765/gun',
+          // The relay parks plain GETs to /gun (websocket handoff), so the
+          // readiness probe uses its health endpoint instead.
+          url: 'http://localhost:8765/healthz',
           reuseExistingServer: !process.env.CI,
           timeout: 60_000,
         },
@@ -42,6 +44,11 @@ export default defineConfig({
           timeout: 120_000,
           env: {
             VITE_GUN_RELAY_PEERS: GUN_RELAY_URL,
+            // Safe defaults so a fresh checkout runs e2e without a local
+            // .env.local (which stays untracked because real deployments
+            // override these).
+            VITE_XMTP_ENV: 'dev',
+            VITE_APP_URL: E2E_BASE_URL,
           },
         },
       ],

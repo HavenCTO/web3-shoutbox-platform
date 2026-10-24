@@ -37,7 +37,8 @@ export function MessageList({
 
   useEffect(() => {
     if (windowEpoch > prevEpochRef.current && prevEpochRef.current > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- epoch changes are an external event
+      // Epoch changes arrive as an external event; the divider hides itself
+      // again via the timer cleanup below.
       setShowSessionDivider(true)
       const timer = setTimeout(() => setShowSessionDivider(false), 5000)
       return () => clearTimeout(timer)

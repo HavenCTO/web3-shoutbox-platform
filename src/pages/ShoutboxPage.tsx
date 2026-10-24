@@ -84,7 +84,7 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
             className="focus-ring flex-1 rounded bg-gray-900 px-2 py-1 text-xs text-gray-100 placeholder:text-gray-500 sm:px-3 sm:py-1.5 sm:text-sm"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 px-6 text-[10px] text-gray-500 sm:gap-3 sm:text-xs">
+        <div className="flex flex-wrap items-center gap-2 px-6 text-[11px] text-gray-400 sm:gap-3 sm:text-xs">
           <span className="flex items-center gap-1">
             <Hash className="h-3 w-3" />
             {room.roomKey ? truncateHash(room.roomKey) : <Skeleton className="inline-block h-3 w-16" />}

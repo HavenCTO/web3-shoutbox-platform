@@ -22,7 +22,7 @@ export function IdentityBadge() {
   return (
     <div className="flex items-center gap-2">
       <span
-        className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold text-white"
         style={{ backgroundColor: `hsl(${hue} 55% 42%)` }}
         aria-hidden
       >
@@ -30,7 +30,7 @@ export function IdentityBadge() {
       </span>
       <span className="text-xs text-gray-200 sm:text-sm">
         {displayName}
-        <span className="text-gray-500"> (you)</span>
+        <span className="text-gray-400"> (you)</span>
       </span>
       <span
         className={`h-2 w-2 rounded-full ${status === 'ready' ? 'bg-green-500' : 'bg-amber-400 animate-pulse'}`}

@@ -87,6 +87,10 @@ test('two fresh visitors chat with no wallet or onboarding', async ({ browser })
     await composerB.fill(replyText)
     await composerB.press('Enter')
     await expect(pageA.getByText(replyText)).toBeVisible({ timeout: DELIVERY_TIMEOUT })
+    // Wait for the draft to clear first: while the send is in flight the
+    // composer still holds the text, and getByText would match both the
+    // delivered bubble and the draft (a strict-mode violation).
+    await expect(composerB).toHaveValue('', { timeout: 30_000 })
     await expect(pageB.getByText(replyText)).toBeVisible({ timeout: 30_000 })
   } finally {
     await contextA.close()

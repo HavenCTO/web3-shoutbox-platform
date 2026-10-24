@@ -64,7 +64,7 @@ export function MessageBubble({
       >
         {message.content}
       </div>
-      <span className="text-[10px] text-gray-500 px-1">{formatTimestamp(message.timestamp)}</span>
+      <span className="text-[11px] text-gray-400 px-1">{formatTimestamp(message.timestamp)}</span>
     </div>
   )
 }

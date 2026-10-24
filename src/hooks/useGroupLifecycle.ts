@@ -49,6 +49,21 @@ export function useGroupLifecycle(roomKey: string | null) {
   const [currentWindow, setCurrentWindow] = useState<GroupWindow | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Reset local lifecycle state during render when the room stops being ready
+  // (the sanctioned adjust-state-on-transition pattern). Store and ref cleanup
+  // stays in the effect below — external stores must not be written during
+  // render.
+  const roomReady = Boolean(roomKey && status === 'ready' && client && inboxId)
+  const [wasRoomReady, setWasRoomReady] = useState(roomReady)
+  if (wasRoomReady !== roomReady) {
+    setWasRoomReady(roomReady)
+    if (!roomReady) {
+      setGroupState('idle')
+      setActiveGroupId(null)
+      setCurrentWindow(null)
+    }
+  }
+
   const runningRef = useRef(false)
   const expiringTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const expireTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -154,11 +169,9 @@ export function useGroupLifecycle(roomKey: string | null) {
   // It first checks GunDB for an existing group; if none, it waits for
   // the creation gate (deferred until MIN_PARTICIPANTS) before creating.
   useEffect(() => {
-    if (!roomKey || status !== 'ready' || !client || !inboxId) {
-      setGroupState('idle')
-      setActiveGroupId(null)
+    if (!roomReady || !roomKey || !client || !inboxId) {
+      // The chat store is an external system — reset it here, not during render.
       setActiveGroup(null)
-      setCurrentWindow(null)
       latchedRef.current = false
       gateMetSinceRef.current = null
       clearTimers()
@@ -247,7 +260,7 @@ export function useGroupLifecycle(roomKey: string | null) {
       runningRef.current = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomKey, status, inboxId, isLeader])
+  }, [roomReady, roomKey, status, inboxId, isLeader])
 
   // ── Creation gate watcher ──
   // While in 'waiting-for-peers', watches presence and applies a debounced

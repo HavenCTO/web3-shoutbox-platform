@@ -32,7 +32,7 @@ export function PresencePanel({
 
   return (
     <details className="border-b border-gray-700 group">
-      <summary className="cursor-pointer px-2 py-1 text-[10px] text-gray-400 hover:text-gray-300 sm:px-3 sm:py-1.5 sm:text-xs select-none">
+      <summary className="cursor-pointer px-2 py-1 text-[11px] text-gray-400 hover:text-gray-300 sm:px-3 sm:py-1.5 sm:text-xs select-none">
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="inline-flex items-center gap-1">
             {count > 0 && !presenceDegraded && (

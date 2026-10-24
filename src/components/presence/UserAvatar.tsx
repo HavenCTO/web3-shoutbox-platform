@@ -25,7 +25,7 @@ export function UserAvatar({
   const nameText = (
     <span className="text-sm text-gray-300 truncate">
       {displayName}
-      {suffix ? <span className="text-gray-500">{suffix}</span> : null}
+      {suffix ? <span className="text-gray-400">{suffix}</span> : null}
     </span>
   )
 

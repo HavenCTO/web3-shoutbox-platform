@@ -95,17 +95,17 @@ export function ChatContainer({
       <div className="flex items-center justify-between border-b border-gray-700 bg-gray-800 px-2 py-1.5 sm:px-3 sm:py-2">
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dotClassName}`} />
-          <span className="text-[10px] text-gray-300 sm:text-xs">{statusText}</span>
+          <span className="text-[11px] text-gray-300 sm:text-xs">{statusText}</span>
         </div>
         <div className="flex items-center gap-2">
           {queuedMessageCount > 0 && (
-            <span className="flex items-center gap-1 text-[10px] text-amber-400 sm:text-xs">
+            <span className="flex items-center gap-1 text-[11px] text-amber-400 sm:text-xs">
               <Clock className="h-3 w-3" />
               {queuedMessageCount} queued
             </span>
           )}
           {windowEpoch > 0 && (
-            <span className="text-[10px] text-gray-500">#{windowEpoch}</span>
+            <span className="text-[11px] text-gray-400">#{windowEpoch}</span>
           )}
         </div>
       </div>
@@ -115,13 +115,13 @@ export function ChatContainer({
 
       {/* Error banner — only show for non-auto-recovering errors */}
       {error && !isAutoRecovering && (
-        <div className="flex flex-wrap items-center gap-2 bg-red-900/40 px-2 py-1 text-[10px] text-red-300 sm:px-3 sm:py-1.5 sm:text-xs">
+        <div className="flex flex-wrap items-center gap-2 bg-red-900/40 px-2 py-1 text-[11px] text-red-300 sm:px-3 sm:py-1.5 sm:text-xs">
           <span className="min-w-0 flex-1">{error}</span>
           {showInitRetryCta && onRetryConversationInit && (
             <button
               type="button"
               onClick={onRetryConversationInit}
-              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[10px] font-medium text-red-100 hover:bg-red-900/60 sm:text-xs"
+              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[11px] font-medium text-red-100 hover:bg-red-900/60 sm:text-xs"
             >
               Retry
             </button>
@@ -131,7 +131,7 @@ export function ChatContainer({
               type="button"
               onClick={() => void onResyncConversation()}
               disabled={isResyncing}
-              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[10px] font-medium text-red-100 hover:bg-red-900/60 disabled:opacity-60 sm:text-xs"
+              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[11px] font-medium text-red-100 hover:bg-red-900/60 disabled:opacity-60 sm:text-xs"
             >
               {isResyncing ? 'Resyncing…' : 'Resync'}
             </button>
@@ -141,7 +141,7 @@ export function ChatContainer({
 
       {/* Auto-recovery banner — soft, non-alarming */}
       {isAutoRecovering && (
-        <div className="flex items-center gap-2 border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 text-[10px] text-sky-200/95 sm:px-3 sm:py-2 sm:text-xs">
+        <div className="flex items-center gap-2 border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 text-[11px] text-sky-200/95 sm:px-3 sm:py-2 sm:text-xs">
           <Loader2 className="h-3 w-3 animate-spin text-sky-400" />
           <span>Syncing encryption state — this usually resolves in a few seconds.</span>
         </div>
@@ -150,7 +150,7 @@ export function ChatContainer({
       {/* Connecting banner with progressive step info */}
       {showConnectingBanner && (
         <div className="border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 sm:px-3 sm:py-2">
-          <div className="flex items-center gap-2 text-[10px] text-sky-200/95 sm:text-xs">
+          <div className="flex items-center gap-2 text-[11px] text-sky-200/95 sm:text-xs">
             <Loader2 className="h-3 w-3 animate-spin text-sky-400 shrink-0" />
             <span>{bannerText}</span>
           </div>
@@ -178,7 +178,7 @@ export function ChatContainer({
             <Loader2 className="h-5 w-5 animate-spin text-sky-400" />
           </div>
           <p className="text-sm font-medium text-gray-300">Waiting for others to join…</p>
-          <p className="text-xs text-gray-500 text-center max-w-xs">
+          <p className="text-xs text-gray-400 text-center max-w-xs">
             Encrypted chat will start when another person enters the room.
             You can type a message now — it will send automatically.
           </p>
