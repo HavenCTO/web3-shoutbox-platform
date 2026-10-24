@@ -28,7 +28,7 @@ export function Header() {
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 text-white">
             <MessageSquare className="h-5 w-5" />
-            <span className="text-lg font-bold">Web3 Shoutbox</span>
+            <h1 className="text-lg font-bold">Web3 Shoutbox</h1>
           </Link>
           <nav className="hidden sm:flex items-center gap-4">
             {navLinks.map(({ to, label, icon: Icon }) => (

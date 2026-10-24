@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useChatStore } from '@/stores/chatStore'
@@ -55,8 +55,11 @@ export function useXmtpConversation(
   options: UseXmtpConversationOptions = {},
 ) {
   const { client, inboxId } = useXmtpClient()
-  const getRequiredRef = useRef(options.getRequiredInboxIds ?? defaultRequiredInboxIds)
-  getRequiredRef.current = options.getRequiredInboxIds ?? defaultRequiredInboxIds
+  const getRequired = options.getRequiredInboxIds ?? defaultRequiredInboxIds
+  const getRequiredRef = useRef(getRequired)
+  useLayoutEffect(() => {
+    getRequiredRef.current = getRequired
+  }, [getRequired])
   const {
     messages,
     isLoading,
@@ -95,7 +98,27 @@ export function useXmtpConversation(
 
   const showInitRetryCta = Boolean(error) && !isAutoRecovering && errorCode === MEMBER_SETTLE_RETRY_CODE
 
-  groupIdRef.current = groupId
+  useLayoutEffect(() => {
+    groupIdRef.current = groupId
+  }, [groupId])
+
+  // Reset conversation state during render when any initialization input
+  // changes identity (the sanctioned adjust-state-on-transition pattern)
+  // instead of calling setState synchronously inside the effect body below.
+  // The client is compared by reference, matching the effect's dependencies:
+  // a replaced client must re-run initialization from a clean slate.
+  const [resetInputs, setResetInputs] = useState({ groupId, inboxId, client, initRetryNonce })
+  if (
+    resetInputs.groupId !== groupId
+    || resetInputs.inboxId !== inboxId
+    || resetInputs.client !== client
+    || resetInputs.initRetryNonce !== initRetryNonce
+  ) {
+    setResetInputs({ groupId, inboxId, client, initRetryNonce })
+    setReadyForGroupId(null)
+    setConnectionStep(null)
+    setIsAutoRecovering(false)
+  }
 
   // Flush queued messages when messaging becomes ready
   useEffect(() => {
@@ -123,10 +146,7 @@ export function useXmtpConversation(
     unsubRef.current?.()
     unsubRef.current = null
     groupRef.current = null
-    setReadyForGroupId(null)
     readyForGroupIdRef.current = null
-    setConnectionStep(null)
-    setIsAutoRecovering(false)
     // Do NOT clear the message queue here: this effect re-runs when groupId
     // first becomes non-null, which is exactly when messages queued while
     // waiting for peers must survive to be flushed once messaging is ready.

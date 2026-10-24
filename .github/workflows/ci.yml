@@ -10,8 +10,10 @@ permissions:
   contents: read
 
 # Only actions/checkout is used: the org's Actions policy does not resolve
-# marketplace setup-* actions. Node and npm ship on ubuntu-latest and the
-# lockfile pins everything.
+# marketplace setup-* actions. The runner's default Node satisfies the
+# package.json engines range (^22.22.2 || ^24.15.0 || >=26.0.0): ubuntu-latest
+# ships Node 22.23.x today and is migrating to 24.21.x through Nov 2026.
+# Node and npm ship on ubuntu-latest and the lockfile pins everything.
 jobs:
   build:
     runs-on: ubuntu-latest

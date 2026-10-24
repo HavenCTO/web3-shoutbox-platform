@@ -1,4 +1,4 @@
-import { useState, useCallback, type KeyboardEvent } from 'react'
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent } from 'react'
 import { Send, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -56,21 +56,33 @@ export function MessageInput({
   const canSend = canType && !sending
   const disabled = !canSend
 
-  const send = useCallback(async () => {
-    const trimmed = text.trim()
-    if (!trimmed || !canSend) return
+  // Retry handle for the toast action, assigned in an effect so no callback
+  // references itself before its declaration. It re-sends the exact text that
+  // failed — the draft may have been edited since the failure.
+  const retryRef = useRef<((value: string) => void) | null>(null)
+
+  const sendText = useCallback(async (value: string) => {
+    if (!value || !canSend) return
     setSending(true)
     try {
-      await onSend(trimmed)
+      await onSend(value)
       setText('')
     } catch {
       toast.error('Message failed to send. Tap to retry.', {
-        action: { label: 'Retry', onClick: () => void send() },
+        action: { label: 'Retry', onClick: () => void retryRef.current?.(value) },
       })
     } finally {
       setSending(false)
     }
-  }, [text, canSend, onSend])
+  }, [canSend, onSend])
+
+  useEffect(() => {
+    retryRef.current = sendText
+  }, [sendText])
+
+  const send = useCallback(() => {
+    void sendText(text.trim())
+  }, [text, sendText])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -83,7 +95,7 @@ export function MessageInput({
     <div className="border-t border-gray-700 bg-gray-800">
       {/* Queued message indicator */}
       {queuedCount > 0 && (
-        <div className="flex items-center gap-1.5 px-2 py-1 text-[10px] text-amber-400/90 sm:px-3 sm:text-xs">
+        <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-amber-400/90 sm:px-3 sm:text-xs">
           <Clock className="h-3 w-3" />
           <span>{queuedCount} message{queuedCount > 1 ? 's' : ''} queued — will send when connected</span>
         </div>

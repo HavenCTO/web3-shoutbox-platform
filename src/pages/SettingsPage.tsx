@@ -121,7 +121,7 @@ export function SettingsPage() {
             <div key={peer} className="flex items-center gap-2 text-xs sm:text-sm">
               <span className="h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
               <span className="text-gray-300 truncate">{peer}</span>
-              <span className="text-[10px] text-gray-600">(default)</span>
+              <span className="text-[11px] text-gray-600">(default)</span>
             </div>
           ))}
           {customPeers.map((peer) => (
