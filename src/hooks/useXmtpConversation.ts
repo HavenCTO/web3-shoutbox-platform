@@ -118,6 +118,7 @@ export function useXmtpConversation(
   ) {
     setResetInputs({ groupId, inboxId, client, initRetryNonce })
     setReadyForGroupId(null)
+    setActiveGroup(null)
     setConnectionStep(null)
     setIsAutoRecovering(false)
   }
@@ -148,7 +149,6 @@ export function useXmtpConversation(
     unsubRef.current?.()
     unsubRef.current = null
     groupRef.current = null
-    setActiveGroup(null)
     readyForGroupIdRef.current = null
     // Do NOT clear the message queue here: this effect re-runs when groupId
     // first becomes non-null, which is exactly when messages queued while
