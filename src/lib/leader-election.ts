@@ -48,3 +48,41 @@ export function amILeaderWhenPresenceSynced(
   if (syncStatus !== 'synced' || !myInboxId) return false
   return amILeader(myInboxId, onlineUsers)
 }
+
+/**
+ * Sticky election: the current group's creator stays leader while online,
+ * so "host" does not jump to a later arrival with a lower inbox ID. Falls
+ * back to the plain lowest-ID election when there is no creator yet or
+ * the creator has left (failover).
+ */
+export function electStickyLeader(
+  onlineUsers: OnlineUser[],
+  preferredInboxId: string | null,
+): string | null {
+  if (preferredInboxId) {
+    const preferred = onlineUsers.find((u) => u.isOnline && u.inboxId === preferredInboxId)
+    if (preferred) return preferred.inboxId
+  }
+  return electLeader(onlineUsers)
+}
+
+/** Synced-gated sticky election. */
+export function electStickyLeaderWhenPresenceSynced(
+  syncStatus: PresenceSyncStatus,
+  onlineUsers: OnlineUser[],
+  preferredInboxId: string | null,
+): string | null {
+  if (syncStatus !== 'synced') return null
+  return electStickyLeader(onlineUsers, preferredInboxId)
+}
+
+/** Synced-gated sticky leader check. */
+export function amIStickyLeaderWhenPresenceSynced(
+  syncStatus: PresenceSyncStatus,
+  myInboxId: string | null,
+  onlineUsers: OnlineUser[],
+  preferredInboxId: string | null,
+): boolean {
+  if (syncStatus !== 'synced' || !myInboxId) return false
+  return electStickyLeader(onlineUsers, preferredInboxId) === myInboxId
+}

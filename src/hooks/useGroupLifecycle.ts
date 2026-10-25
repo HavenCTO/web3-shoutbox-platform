@@ -45,6 +45,7 @@ export function useGroupLifecycle(roomKey: string | null) {
   const { isLeader } = useLeaderElection()
   const onlineUsers = usePresenceStore((s) => s.onlineUsers)
   const setActiveGroup = useChatStore((s) => s.setActiveGroup)
+  const setActiveGroupCreator = useChatStore((s) => s.setActiveGroupCreator)
   const transitionToEpoch = useChatStore((s) => s.transitionToEpoch)
 
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
@@ -99,6 +100,7 @@ export function useGroupLifecycle(roomKey: string | null) {
     (groupWindow: GroupWindow) => {
       setActiveGroupId(groupWindow.groupId)
       setActiveGroup(groupWindow.groupId)
+      setActiveGroupCreator(groupWindow.createdBy)
       setCurrentWindow(groupWindow)
       setGroupState('active')
       setError(null)
@@ -175,6 +177,7 @@ export function useGroupLifecycle(roomKey: string | null) {
     if (!roomReady || !roomKey || !client || !inboxId) {
       // The chat store is an external system — reset it here, not during render.
       setActiveGroup(null)
+      setActiveGroupCreator(null)
       latchedRef.current = false
       gateMetSinceRef.current = null
       clearTimers()

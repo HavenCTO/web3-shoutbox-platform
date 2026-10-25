@@ -5,6 +5,8 @@ import type { ShoutboxMessage } from '@/types/message'
 interface ChatState {
   messages: ShoutboxMessage[]
   activeGroupId: string | null
+  /** Inbox that created the active group; the sticky host while online. */
+  activeGroupCreator: string | null
   windowEpoch: number
   previousWindowMessages: ShoutboxMessage[]
   isLoading: boolean
@@ -14,6 +16,7 @@ interface ChatState {
   addMessage: (msg: ShoutboxMessage) => void
   setMessages: (msgs: ShoutboxMessage[]) => void
   setActiveGroup: (groupId: string | null) => void
+  setActiveGroupCreator: (inboxId: string | null) => void
   clearMessages: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null, code?: string | null) => void
@@ -23,6 +26,7 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
   activeGroupId: null,
+  activeGroupCreator: null,
   windowEpoch: 0,
   previousWindowMessages: [],
   isLoading: false,
@@ -36,6 +40,7 @@ export const useChatStore = create<ChatState>((set) => ({
     })),
   setMessages: (msgs) => set({ messages: dedupeShoutboxMessagesById(msgs) }),
   setActiveGroup: (groupId) => set({ activeGroupId: groupId }),
+  setActiveGroupCreator: (inboxId) => set({ activeGroupCreator: inboxId }),
   clearMessages: () => set({ messages: [] }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error, code = null) =>

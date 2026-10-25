@@ -4,6 +4,8 @@ import {
   amILeader,
   electLeaderWhenPresenceSynced,
   amILeaderWhenPresenceSynced,
+  electStickyLeader,
+  amIStickyLeaderWhenPresenceSynced,
 } from '@/lib/leader-election'
 import type { OnlineUser } from '@/types/presence'
 
@@ -80,6 +82,39 @@ describe('electLeaderWhenPresenceSynced', () => {
   it('delegates to electLeader when synced', () => {
     const users = [user('ccc'), user('aaa')]
     expect(electLeaderWhenPresenceSynced('synced', users)).toBe('aaa')
+  })
+})
+
+describe('electStickyLeader', () => {
+  it('keeps the creator as leader even when a lower inbox joins later', () => {
+    const users = [user('ccc'), user('aaa')]
+    expect(electStickyLeader(users, 'ccc')).toBe('ccc')
+  })
+
+  it('falls back to lowest ID when the creator left', () => {
+    const users = [user('ccc'), user('aaa')]
+    expect(electStickyLeader(users, 'zzz')).toBe('aaa')
+  })
+
+  it('falls back when there is no creator yet', () => {
+    const users = [user('ccc'), user('aaa')]
+    expect(electStickyLeader(users, null)).toBe('aaa')
+  })
+
+  it('ignores an offline creator record', () => {
+    const users = [user('ccc', false), user('aaa')]
+    expect(electStickyLeader(users, 'ccc')).toBe('aaa')
+  })
+
+  it('returns null when nobody is online', () => {
+    expect(electStickyLeader([], 'ccc')).toBeNull()
+  })
+
+  it('amIStickyLeader follows the sticky winner and the sync gate', () => {
+    const users = [user('ccc'), user('aaa')]
+    expect(amIStickyLeaderWhenPresenceSynced('synced', 'ccc', users, 'ccc')).toBe(true)
+    expect(amIStickyLeaderWhenPresenceSynced('synced', 'aaa', users, 'ccc')).toBe(false)
+    expect(amIStickyLeaderWhenPresenceSynced('degraded', 'ccc', users, 'ccc')).toBe(false)
   })
 })
 
