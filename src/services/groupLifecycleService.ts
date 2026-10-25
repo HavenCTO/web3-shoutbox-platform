@@ -18,10 +18,11 @@ import { BRIDGE_ADDRESSES, mergeMemberAddresses } from '@/lib/bridgeMembers'
 // ── Deferred creation gate ──────────────────────────────────────────────────
 
 /**
- * Minimum number of distinct online inbox IDs required before the leader
- * creates an MLS group.  A value of 2 means a solo user never triggers
- * MLS setup — creation is deferred until at least one *other* participant
- * is stably present.
+ * Minimum number of effective group members required before the leader
+ * creates an MLS group. Effective members are distinct online users plus
+ * any standing bridge addresses seated in every group, so a solo user with
+ * the agent bridge configured counts as a 2-member room and is never
+ * deferred waiting for a second human.
  */
 export const MIN_PARTICIPANTS = 2
 
@@ -49,14 +50,25 @@ export function shouldDeferGroupCreation(
   onlineUsers: OnlineUser[],
   selfInboxId: string | null,
   hasExistingGroup: boolean,
+  standingAddresses: readonly string[] = [],
 ): boolean {
   // Latch: once a group exists for this epoch, never revert to deferred.
   if (hasExistingGroup) return false
 
-  const distinctOnline = new Set(
-    onlineUsers.filter((u) => u.isOnline).map((u) => u.inboxId),
-  )
-  return distinctOnline.size < MIN_PARTICIPANTS
+  // Effective members = distinct online addresses plus standing bridge
+  // addresses that will be seated in the group. A solo host plus the agent
+  // bridge already forms a real 2-member room, so creation must not wait
+  // for a second human visitor.
+  const members = new Set<string>()
+  for (const u of onlineUsers) {
+    if (!u.isOnline) continue
+    members.add(u.address.trim().toLowerCase())
+  }
+  for (const addr of standingAddresses) {
+    const a = addr.trim().toLowerCase()
+    if (a) members.add(a)
+  }
+  return members.size < MIN_PARTICIPANTS
 }
 
 /**

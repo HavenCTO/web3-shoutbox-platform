@@ -18,6 +18,7 @@ import {
   CREATION_GATE_DEBOUNCE_MS,
 } from '@/services/groupLifecycleService'
 import { subscribeToGroup } from '@/lib/group-lifecycle'
+import { BRIDGE_ADDRESSES } from '@/lib/bridgeMembers'
 import { teardownActiveGroupForWindowTransition } from '@/lib/windowTransitionTeardown'
 
 const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 15
@@ -210,7 +211,7 @@ export function useGroupLifecycle(roomKey: string | null) {
         // 2. No valid group — check the creation gate before proceeding.
         //    If we should defer, transition to 'waiting-for-peers' and let the
         //    gate watcher effect (below) handle the rest.
-        if (shouldDeferGroupCreation(onlineUsers, inboxId, false)) {
+        if (shouldDeferGroupCreation(onlineUsers, inboxId, false, BRIDGE_ADDRESSES)) {
           setGroupState('waiting-for-peers')
           // Don't proceed to create — the gate watcher will trigger creation
           return
@@ -282,7 +283,7 @@ export function useGroupLifecycle(roomKey: string | null) {
     // Check if latch is already set (shouldn't happen but safety)
     if (latchedRef.current) return
 
-    const deferred = shouldDeferGroupCreation(onlineUsers, inboxId, false)
+    const deferred = shouldDeferGroupCreation(onlineUsers, inboxId, false, BRIDGE_ADDRESSES)
 
     if (deferred) {
       // Condition not met — reset debounce tracking
@@ -320,6 +321,7 @@ export function useGroupLifecycle(roomKey: string | null) {
         usePresenceStore.getState().onlineUsers,
         inboxId,
         latchedRef.current,
+        BRIDGE_ADDRESSES,
       )
       if (!stillDeferred && groupState === 'waiting-for-peers') {
         proceedToCreate()
@@ -415,7 +417,7 @@ export function useGroupLifecycle(roomKey: string | null) {
 
       // For transitions, check the creation gate before creating a new epoch group.
       // If we should defer, enter waiting-for-peers for the new epoch.
-      if (shouldDeferGroupCreation(onlineUsers, inboxId, false)) {
+      if (shouldDeferGroupCreation(onlineUsers, inboxId, false, BRIDGE_ADDRESSES)) {
         setGroupState('waiting-for-peers')
         return
       }

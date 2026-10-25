@@ -138,6 +138,44 @@ describe('creation gate constants', () => {
   })
 })
 
+// ── Standing bridge members ──────────────────────────────────────────────────
+
+describe('standing bridge members', () => {
+  const BRIDGE_ADDR = '0x90779a7582aafb91b9ad78e9f3a3cba88ed44042'
+
+  it('does NOT defer a solo host when a bridge address will be seated', () => {
+    const users = [makeUser('inbox-a')]
+    expect(shouldDeferGroupCreation(users, 'inbox-a', false, [BRIDGE_ADDR])).toBe(false)
+  })
+
+  it('still defers a solo host without a bridge when no one else is online', () => {
+    const users = [makeUser('inbox-a')]
+    expect(shouldDeferGroupCreation(users, 'inbox-a', false, [])).toBe(true)
+  })
+
+  it('still defers when the bridge address duplicates the host address', () => {
+    const users = [makeUser('inbox-a')]
+    // makeUser address is `0x${inboxId}` = '0xinbox-a'
+    expect(shouldDeferGroupCreation(users, 'inbox-a', false, ['0xinbox-a'])).toBe(true)
+  })
+
+  it('counts bridge addresses case-insensitively (no double-count)', () => {
+    const users = [makeUser('inbox-a')]
+    expect(
+      shouldDeferGroupCreation(users, 'inbox-a', false, ['0XINBOX-A']),
+    ).toBe(true)
+  })
+
+  it('zero online users still defers even with a bridge', () => {
+    expect(shouldDeferGroupCreation([], null, false, [BRIDGE_ADDR])).toBe(true)
+  })
+
+  it('two hosts plus a bridge does NOT defer', () => {
+    const users = [makeUser('inbox-a'), makeUser('inbox-b')]
+    expect(shouldDeferGroupCreation(users, 'inbox-a', false, [BRIDGE_ADDR])).toBe(false)
+  })
+})
+
 // ── Edge case matrix from the plan ───────────────────────────────────────────
 
 describe('edge case matrix', () => {
