@@ -9,12 +9,15 @@ interface PresencePanelProps {
   isLoading?: boolean
   /** When set, that user’s row shows “ (you)” after their address. */
   currentInboxId?: string | null
+  /** Addresses of standing agent bridges; their rows show “ (agent)”. */
+  agentAddresses?: readonly string[]
 }
 
 export function PresencePanel({
   onlineUsers: propUsers,
   isLoading,
   currentInboxId,
+  agentAddresses,
 }: PresencePanelProps) {
   const storeUsers = usePresenceStore((s) => s.onlineUsers)
   const presenceSyncStatus = useGunPresenceSyncStore((s) => s.syncStatus)
@@ -59,7 +62,15 @@ export function PresencePanel({
               <li key={user.inboxId} className="animate-slide-in">
                 <UserAvatar
                   address={user.address}
-                  suffix={currentInboxId && user.inboxId === currentInboxId ? ' (you)' : undefined}
+                  suffix={
+                    currentInboxId && user.inboxId === currentInboxId
+                      ? ' (you)'
+                      : agentAddresses?.some(
+                            (a) => a.toLowerCase() === user.address.toLowerCase(),
+                          )
+                        ? ' (agent)'
+                        : undefined
+                  }
                 />
               </li>
             ))}

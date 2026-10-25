@@ -70,12 +70,18 @@ export function joinRoom(
   address: string,
 ): Result<() => void, PresenceError> {
   try {
-    safeWritePresence(gun, roomKey, {
+    const write = () => safeWritePresence(gun, roomKey, {
       inboxId,
       address,
       ts: Date.now(),
       status: 'online',
     })
+    write()
+    // Join burst: quick re-writes so peers and the leader snapshot see us
+    // within ~1-3s instead of waiting for the 10s heartbeat to propagate.
+    for (const delay of [1_000, 3_000]) {
+      setTimeout(write, delay)
+    }
     startHeartbeat(gun, roomKey, inboxId, address)
 
     const cleanup = () => leaveRoom(gun, roomKey, inboxId)

@@ -8,6 +8,8 @@ import {
   shouldShowChatConnectingBanner,
 } from '@/lib/chat-status'
 import type { ConnectionStep } from '@/lib/chat-status'
+import { withAgentPresence } from '@/lib/agentPresence'
+import { BRIDGE_ADDRESSES } from '@/lib/bridgeMembers'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { PresencePanel } from '@/components/presence/PresencePanel'
@@ -65,6 +67,14 @@ export function ChatContainer({
     [onlineUsers, inboxId, address],
   )
 
+  // Once a group is live the bridge is a seated member: show it right away
+  // instead of waiting for its first relayed message to make it visible.
+  const groupLive = groupState === 'active' || groupState === 'expiring'
+  const displayUsers = useMemo(
+    () => (groupLive ? withAgentPresence(onlineUsers, BRIDGE_ADDRESSES) : onlineUsers),
+    [onlineUsers, groupLive],
+  )
+
   const isSettingUp = groupState === 'waiting-for-group' || groupState === 'idle'
   const isWaitingForPeers = groupState === 'waiting-for-peers'
 
@@ -111,7 +121,7 @@ export function ChatContainer({
       </div>
 
       {/* Presence — collapsed to count on narrow, expandable */}
-      <PresencePanel onlineUsers={onlineUsers} currentInboxId={inboxId} />
+      <PresencePanel onlineUsers={displayUsers} currentInboxId={inboxId} agentAddresses={BRIDGE_ADDRESSES} />
 
       {/* Error banner — only show for non-auto-recovering errors */}
       {error && !isAutoRecovering && (

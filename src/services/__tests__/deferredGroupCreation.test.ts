@@ -23,6 +23,7 @@ vi.mock('@/services/messagingService', () => ({
 
 import {
   shouldDeferGroupCreation,
+  gateNeedsDebounce,
   countDistinctOnlineInboxes,
   MIN_PARTICIPANTS,
   CREATION_GATE_DEBOUNCE_MS,
@@ -173,6 +174,36 @@ describe('standing bridge members', () => {
   it('two hosts plus a bridge does NOT defer', () => {
     const users = [makeUser('inbox-a'), makeUser('inbox-b')]
     expect(shouldDeferGroupCreation(users, 'inbox-a', false, [BRIDGE_ADDR])).toBe(false)
+  })
+})
+
+// ── gateNeedsDebounce ────────────────────────────────────────────────────────
+
+describe('gateNeedsDebounce', () => {
+  const BRIDGE_ADDR = '0x90779a7582aafb91b9ad78e9f3a3cba88ed44042'
+
+  it('needs debounce when humans alone meet the gate', () => {
+    const users = [makeUser('inbox-a'), makeUser('inbox-b')]
+    expect(gateNeedsDebounce(users, [BRIDGE_ADDR])).toBe(true)
+  })
+
+  it('needs debounce when humans alone meet the gate (no bridge)', () => {
+    const users = [makeUser('inbox-a'), makeUser('inbox-b')]
+    expect(gateNeedsDebounce(users, [])).toBe(true)
+  })
+
+  it('skips debounce when the bridge completes the gate for a solo host', () => {
+    const users = [makeUser('inbox-a')]
+    expect(gateNeedsDebounce(users, [BRIDGE_ADDR])).toBe(false)
+  })
+
+  it('stays debounced when the gate is unmet even with the bridge', () => {
+    expect(gateNeedsDebounce([], [BRIDGE_ADDR])).toBe(true)
+  })
+
+  it('stays debounced for a solo host without a bridge', () => {
+    const users = [makeUser('inbox-a')]
+    expect(gateNeedsDebounce(users, [])).toBe(true)
   })
 })
 

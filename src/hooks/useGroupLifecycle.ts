@@ -15,6 +15,7 @@ import {
   calculateNextEpoch,
   resolveGroupConflict,
   shouldDeferGroupCreation,
+  gateNeedsDebounce,
   CREATION_GATE_DEBOUNCE_MS,
 } from '@/services/groupLifecycleService'
 import { subscribeToGroup } from '@/lib/group-lifecycle'
@@ -295,14 +296,19 @@ export function useGroupLifecycle(roomKey: string | null) {
       return
     }
 
-    // Condition met. Start or continue debounce.
+    // Condition met. Start or continue debounce — unless the standing
+    // bridge is what completes the gate (solo host + agent): no human
+    // flicker to guard against, so create immediately.
     const now = Date.now()
     if (gateMetSinceRef.current === null) {
       gateMetSinceRef.current = now
     }
 
     const elapsed = now - gateMetSinceRef.current
-    const remaining = CREATION_GATE_DEBOUNCE_MS - elapsed
+    const debounceMs = gateNeedsDebounce(onlineUsers, BRIDGE_ADDRESSES)
+      ? CREATION_GATE_DEBOUNCE_MS
+      : 0
+    const remaining = debounceMs - elapsed
 
     if (remaining <= 0) {
       // Gate debounce satisfied — proceed to create

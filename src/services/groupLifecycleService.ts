@@ -46,6 +46,29 @@ export const CREATION_GATE_DEBOUNCE_MS = 12_000
  * @param hasExistingGroup  True if the room/epoch already has an active groupId.
  * @returns `true` when creation should **wait** (i.e. not enough participants).
  */
+/**
+ * True when online humans alone meet the gate and the anti-flicker debounce
+ * applies. When standing bridge members are what completes the gate, there
+ * is no human flicker to guard against — creation may proceed immediately.
+ */
+export function gateNeedsDebounce(
+  onlineUsers: OnlineUser[],
+  standingAddresses: readonly string[] = [],
+): boolean {
+  const humans = new Set<string>()
+  for (const u of onlineUsers) {
+    if (u.isOnline) humans.add(u.address.trim().toLowerCase())
+  }
+  if (humans.size >= MIN_PARTICIPANTS) return true
+  // Gate unmet even with the bridge: debounce question is moot, stay debounced.
+  const withStanding = new Set(humans)
+  for (const addr of standingAddresses) {
+    const a = addr.trim().toLowerCase()
+    if (a) withStanding.add(a)
+  }
+  return withStanding.size < MIN_PARTICIPANTS
+}
+
 export function shouldDeferGroupCreation(
   onlineUsers: OnlineUser[],
   selfInboxId: string | null,
