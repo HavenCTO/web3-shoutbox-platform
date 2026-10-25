@@ -16,6 +16,7 @@ import {
   resolveGroupConflict,
   shouldDeferGroupCreation,
   gateNeedsDebounce,
+  isGroupOrphaned,
   CREATION_GATE_DEBOUNCE_MS,
 } from '@/services/groupLifecycleService'
 import { subscribeToGroup } from '@/lib/group-lifecycle'
@@ -204,6 +205,19 @@ export function useGroupLifecycle(roomKey: string | null) {
             return
           }
           if (joinResult.error.code === 'NOT_MEMBER_YET') {
+            // Orphaned group: creator gone, nobody can add us. As leader,
+            // supersede it with a fresh epoch instead of waiting out the
+            // window; otherwise fall back to the advertised group.
+            if (isLeader && isGroupOrphaned(existing.data, onlineUsers)) {
+              const takeResult = await createGroupAsLeader(
+                client, gun, roomKey, onlineUsers, existing.data.epoch + 1, WINDOW_MINUTES,
+              )
+              if (cancelled) return
+              if (takeResult.ok) {
+                activateWindow(takeResult.data)
+                return
+              }
+            }
             activateWindow(existing.data)
             return
           }
@@ -357,6 +371,15 @@ export function useGroupLifecycle(roomKey: string | null) {
               return
             }
             if (joinResult.error.code === 'NOT_MEMBER_YET') {
+              if (isLeader && isGroupOrphaned(existing.data, currentOnlineUsers)) {
+                const takeResult = await createGroupAsLeader(
+                  client!, gun, roomKey!, currentOnlineUsers, existing.data.epoch + 1, WINDOW_MINUTES,
+                )
+                if (takeResult.ok) {
+                  activateWindow(takeResult.data)
+                  return
+                }
+              }
               activateWindow(existing.data)
               return
             }

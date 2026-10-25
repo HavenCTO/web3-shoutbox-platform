@@ -24,11 +24,13 @@ vi.mock('@/services/messagingService', () => ({
 import {
   shouldDeferGroupCreation,
   gateNeedsDebounce,
+  isGroupOrphaned,
   countDistinctOnlineInboxes,
   MIN_PARTICIPANTS,
   CREATION_GATE_DEBOUNCE_MS,
 } from '@/services/groupLifecycleService'
 import type { OnlineUser } from '@/types/presence'
+import type { GroupWindow } from '@/types/group'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -204,6 +206,36 @@ describe('gateNeedsDebounce', () => {
   it('stays debounced for a solo host without a bridge', () => {
     const users = [makeUser('inbox-a')]
     expect(gateNeedsDebounce(users, [])).toBe(true)
+  })
+})
+
+// ── isGroupOrphaned ──────────────────────────────────────────────────────────
+
+describe('isGroupOrphaned', () => {
+  const win: GroupWindow = {
+    groupId: 'g1',
+    epoch: 1,
+    createdBy: 'inbox-a',
+    createdAt: 0,
+    expiresAt: Number.MAX_SAFE_INTEGER,
+    windowMinutes: 15,
+  }
+
+  it('is orphaned when the creator is offline', () => {
+    expect(isGroupOrphaned(win, [makeUser('inbox-b')])).toBe(true)
+  })
+
+  it('is orphaned when nobody is online', () => {
+    expect(isGroupOrphaned(win, [])).toBe(true)
+  })
+
+  it('is not orphaned while the creator is online', () => {
+    expect(isGroupOrphaned(win, [makeUser('inbox-a'), makeUser('inbox-b')])).toBe(false)
+  })
+
+  it('ignores offline creator records', () => {
+    const users = [makeUser('inbox-a', false)]
+    expect(isGroupOrphaned(win, users)).toBe(true)
   })
 })
 

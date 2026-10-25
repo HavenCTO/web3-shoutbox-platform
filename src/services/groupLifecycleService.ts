@@ -187,6 +187,18 @@ const RACE_SETTLE_MS = 1_500
  * epoch**, the lowest `groupId` wins deterministically so both clients converge
  * on the same group without coordination.
  */
+/**
+ * True when a group's creator is no longer online. Such a group is
+ * orphaned: non-members can never be added (only members can add), so
+ * waiting for the window to expire is the only outcome without takeover.
+ */
+export function isGroupOrphaned(
+  groupWindow: GroupWindow,
+  onlineUsers: OnlineUser[],
+): boolean {
+  return !onlineUsers.some((u) => u.isOnline && u.inboxId === groupWindow.createdBy)
+}
+
 export async function createGroupAsLeader(
   xmtpClient: XmtpClient,
   gun: GunInstance,
