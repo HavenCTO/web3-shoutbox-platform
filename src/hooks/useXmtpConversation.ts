@@ -77,6 +77,8 @@ export function useXmtpConversation(
   const readyForGroupIdRef = useRef<string | null>(null)
   /** Group id for which sync + history + stream have completed; must match `groupId` to allow send. */
   const [readyForGroupId, setReadyForGroupId] = useState<string | null>(null)
+  /** Loaded group object (for leader member management); null until init loads it. */
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null)
   const [isResyncing, setIsResyncing] = useState(false)
   const [initRetryNonce, setInitRetryNonce] = useState(0)
   /** Progressive connection step for UX indicators */
@@ -146,6 +148,7 @@ export function useXmtpConversation(
     unsubRef.current?.()
     unsubRef.current = null
     groupRef.current = null
+    setActiveGroup(null)
     readyForGroupIdRef.current = null
     // Do NOT clear the message queue here: this effect re-runs when groupId
     // first becomes non-null, which is exactly when messages queued while
@@ -183,6 +186,7 @@ export function useXmtpConversation(
 
         const group = conversation as Group
         groupRef.current = group
+        setActiveGroup(group)
 
         setConnectionStep('establishing-encryption')
 
@@ -452,6 +456,7 @@ export function useXmtpConversation(
   return {
     messages,
     sendMessage,
+    activeGroup,
     isLoading,
     error,
     messagingReady,

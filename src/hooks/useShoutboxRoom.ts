@@ -1,6 +1,9 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import { hashUrl } from '@/lib/url-utils'
+import { newMemberAddresses } from '@/lib/lateJoiner'
+import { BRIDGE_ADDRESSES } from '@/lib/bridgeMembers'
+import { addMembersToGroup } from '@/services/messagingService'
 import { usePresence } from '@/hooks/usePresence'
 import { useOnlineUsers } from '@/hooks/useOnlineUsers'
 import { useGroupLifecycle } from '@/hooks/useGroupLifecycle'
@@ -62,6 +65,7 @@ export function useShoutboxRoom(roomUrl: string) {
   const {
     messages,
     sendMessage: rawSendMessage,
+    activeGroup,
     isLoading,
     error: conversationError,
     messagingReady,
@@ -78,6 +82,27 @@ export function useShoutboxRoom(roomUrl: string) {
   // Leader election state
   const { isLeader } = useLeaderElection()
   const windowEpoch = useChatStore((s) => s.windowEpoch)
+
+  // Late joiners: the leader adds newly-online members to the live group
+  // instead of leaving them locked out until the next window epoch.
+  // Attempted addresses are tracked per group so each add fires once;
+  // a 3s settle lets the joiner's presence burst stabilize first.
+  const attemptedAddsRef = useRef<{ groupId: string; attempted: Set<string> } | null>(null)
+  useEffect(() => {
+    if (!isLeader || !activeGroup || !activeGroupId) return
+    if (groupState !== 'active' && groupState !== 'expiring') return
+    if (attemptedAddsRef.current?.groupId !== activeGroupId) {
+      attemptedAddsRef.current = { groupId: activeGroupId, attempted: new Set() }
+    }
+    const attempted = attemptedAddsRef.current.attempted
+    const adds = newMemberAddresses(onlineUsers, attempted, BRIDGE_ADDRESSES)
+    if (adds.length === 0) return
+    const timer = setTimeout(() => {
+      for (const a of adds) attempted.add(a)
+      void addMembersToGroup(activeGroup, adds)
+    }, 3_000)
+    return () => clearTimeout(timer)
+  }, [isLeader, activeGroup, activeGroupId, groupState, onlineUsers])
 
   // Allow queueing during connection and deferred state, block only during transition
   const sendMessage = useCallback(
