@@ -60,7 +60,7 @@ export function SettingsPage() {
 
   return (
     <div className="animate-fade-in mx-auto max-w-2xl space-y-6 p-4 sm:space-y-8 sm:p-6">
-      <h1 className="text-xl font-bold text-gray-100 sm:text-2xl">Settings</h1>
+      <h1 className="text-xl font-bold text-ink sm:text-2xl">Settings</h1>
 
       {/* Theme */}
       <Section title="Theme" icon={Sun}>
@@ -72,8 +72,8 @@ export function SettingsPage() {
               className={cn(
                 'focus-ring flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-colors sm:px-4 sm:py-2 sm:text-sm',
                 theme === value
-                  ? 'border-blue-500 bg-blue-600/20 text-blue-400'
-                  : 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600'
+                  ? 'border-ember bg-ember/15 text-ember'
+                  : 'border-void-high bg-void-low text-ink-muted hover:border-void-bright'
               )}
             >
               <Icon className="h-4 w-4" /> {label}
@@ -90,9 +90,9 @@ export function SettingsPage() {
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Optional display name"
           maxLength={32}
-          className="focus-ring w-full rounded-lg bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500"
+          className="focus-ring w-full rounded-lg bg-void-container px-3 py-2 text-sm text-ink placeholder:text-ink-faint"
         />
-        <p className="mt-1 text-xs text-gray-500">Stored locally only.</p>
+        <p className="mt-1 text-xs text-ink-faint">Stored locally only.</p>
       </Section>
 
       {/* Guest Identity */}
@@ -102,13 +102,13 @@ export function SettingsPage() {
           <Row label="Status" value={status === 'ready' ? 'Connected' : 'Joining…'} />
           <Row label="XMTP Inbox ID" value={inboxId ?? 'Not initialized'} mono />
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-ink-faint">
           Your identity was created automatically on this device — no sign-up needed.
           It stays the same across visits here, but clearing browser data starts you as a new person.
         </p>
         <button
           onClick={() => { clearEphemeralIdentity(); window.location.reload() }}
-          className="focus-ring mt-2 rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 transition-colors"
+          className="focus-ring mt-2 rounded-lg bg-void-high px-3 py-1.5 text-sm text-ink hover:bg-void-bright transition-colors"
         >
           Start fresh with a new identity
         </button>
@@ -119,16 +119,16 @@ export function SettingsPage() {
         <div className="space-y-1.5">
           {getRelayPeers().map((peer) => (
             <div key={peer} className="flex items-center gap-2 text-xs sm:text-sm">
-              <span className="h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
-              <span className="text-gray-300 truncate">{peer}</span>
-              <span className="text-[11px] text-gray-600">(default)</span>
+              <span className="h-2 w-2 rounded-full bg-arkiv flex-shrink-0" />
+              <span className="text-ink truncate">{peer}</span>
+              <span className="text-xs text-ink-faint">(default)</span>
             </div>
           ))}
           {customPeers.map((peer) => (
             <div key={peer} className="flex items-center gap-2 text-xs sm:text-sm">
-              <span className="h-2 w-2 rounded-full bg-yellow-500 flex-shrink-0" />
-              <span className="text-gray-300 truncate flex-1">{peer}</span>
-              <button onClick={() => removeCustomPeer(peer)} className="focus-ring rounded text-xs text-red-400 hover:text-red-300">remove</button>
+              <span className="h-2 w-2 rounded-full bg-evm flex-shrink-0" />
+              <span className="text-ink truncate flex-1">{peer}</span>
+              <button onClick={() => removeCustomPeer(peer)} className="focus-ring rounded text-xs text-alert hover:text-alert">remove</button>
             </div>
           ))}
         </div>
@@ -139,9 +139,9 @@ export function SettingsPage() {
             onChange={(e) => setCustomPeerInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addCustomPeer()}
             placeholder="Add custom relay URL"
-            className="focus-ring flex-1 rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-gray-100 placeholder:text-gray-500"
+            className="focus-ring flex-1 rounded-lg bg-void-container px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint"
           />
-          <button onClick={addCustomPeer} className="focus-ring rounded-lg bg-gray-700 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600 transition-colors">
+          <button onClick={addCustomPeer} className="focus-ring rounded-lg bg-void-high px-3 py-1.5 text-sm text-ink hover:bg-void-bright transition-colors">
             Add
           </button>
         </div>
@@ -158,10 +158,10 @@ export function SettingsPage() {
 
       {/* About */}
       <Section title="About" icon={Info}>
-        <p className="text-xs text-gray-400 sm:text-sm">
+        <p className="text-xs text-ink-muted sm:text-sm">
           Web3 Shoutbox is a decentralized, embeddable chat widget powered by XMTP (end-to-end encrypted messaging) and GunDB (peer-to-peer presence). Built as a JAMstack static site with Vite, React, and Tailwind CSS.
         </p>
-        <p className="mt-2 text-xs text-gray-600">Version 0.1.0</p>
+        <p className="mt-2 text-xs text-ink-faint">Version 0.1.0</p>
       </Section>
     </div>
   )
@@ -169,8 +169,8 @@ export function SettingsPage() {
 
 function Section({ title, icon: Icon, children }: { title: string; icon: typeof Sun; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-gray-700 bg-gray-900/50 p-3 sm:p-4">
-      <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold text-gray-200 sm:mb-3 sm:text-sm">
+    <section className="rounded-lg border border-void-high bg-void-sunk p-3 sm:p-4">
+      <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold text-ink sm:mb-3 sm:text-sm">
         <Icon className="h-4 w-4" /> {title}
       </h2>
       {children}
@@ -181,8 +181,8 @@ function Section({ title, icon: Icon, children }: { title: string; icon: typeof 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
-      <span className="text-xs text-gray-500 sm:text-sm">{label}</span>
-      <span className={cn('text-gray-300 truncate text-xs sm:text-sm sm:text-right', mono && 'font-mono')}>{value}</span>
+      <span className="text-xs text-ink-faint sm:text-sm">{label}</span>
+      <span className={cn('text-ink truncate text-xs sm:text-sm sm:text-right', mono && 'font-mono')}>{value}</span>
     </div>
   )
 }

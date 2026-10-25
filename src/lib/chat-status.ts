@@ -40,43 +40,43 @@ export function getChatStatusPresentation(
   const sessionLive = groupState === 'active' || groupState === 'expiring'
 
   if (groupState === 'transitioning') {
-    return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Switching sessions…' }
+    return { dotClassName: 'bg-evm animate-pulse', statusText: 'Switching sessions…' }
   }
   if (groupState === 'waiting-for-peers') {
     return {
-      dotClassName: 'bg-sky-500 animate-pulse',
+      dotClassName: 'bg-arkiv animate-pulse',
       statusText: `Waiting for others to join · ${onlineCount} online`,
     }
   }
   if (groupState === 'waiting-for-group') {
-    return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Setting up chat room…' }
+    return { dotClassName: 'bg-evm animate-pulse', statusText: 'Setting up chat room…' }
   }
   if (groupState === 'idle') {
-    return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Connecting…' }
+    return { dotClassName: 'bg-evm animate-pulse', statusText: 'Connecting…' }
   }
 
   // Auto-recovering from transient MLS error — show soft status instead of hard error
   if (sessionLive && isAutoRecovering) {
-    return { dotClassName: 'bg-sky-500 animate-pulse', statusText: 'Syncing encryption state…' }
+    return { dotClassName: 'bg-arkiv animate-pulse', statusText: 'Syncing encryption state…' }
   }
 
   if (sessionLive && hasConversationError) {
-    return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Reconnecting…' }
+    return { dotClassName: 'bg-evm animate-pulse', statusText: 'Reconnecting…' }
   }
 
   if (sessionLive && (!isMessagingReady || isLoadingConversation)) {
     const stepText = getConnectionStepText(connectionStep ?? null)
     return {
-      dotClassName: 'bg-sky-500 animate-pulse',
+      dotClassName: 'bg-arkiv animate-pulse',
       statusText: stepText,
     }
   }
 
   if (sessionLive && isMessagingReady) {
-    return { dotClassName: 'bg-green-500', statusText: `Connected · ${onlineCount} online` }
+    return { dotClassName: 'bg-arkiv', statusText: `Connected · ${onlineCount} online` }
   }
 
-  return { dotClassName: 'bg-amber-500 animate-pulse', statusText: 'Connecting…' }
+  return { dotClassName: 'bg-evm animate-pulse', statusText: 'Connecting…' }
 }
 
 function getConnectionStepText(step: ConnectionStep | null): string {

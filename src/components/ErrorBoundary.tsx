@@ -42,18 +42,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div
-          className="flex min-h-screen items-center justify-center bg-gray-950 p-4 text-white dark:bg-gray-950"
+          className="flex min-h-screen items-center justify-center bg-void p-4 text-ink dark:bg-void"
           role="alert"
         >
           <div className="mx-4 max-w-md text-center">
-            <AlertTriangle className="mx-auto mb-4 h-10 w-10 text-yellow-500" />
+            <AlertTriangle className="mx-auto mb-4 h-10 w-10 text-evm" />
             <h1 className="text-xl font-bold sm:text-2xl">Something went wrong</h1>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-ink-muted">
               {this.state.error?.message ?? 'An unexpected error occurred.'}
             </p>
             <button
               onClick={this.handleReset}
-              className="focus-ring mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="focus-ring mt-6 inline-flex items-center gap-2 rounded-lg bg-ember px-5 py-2.5 text-sm font-medium hover:bg-ember-lift transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
               Try Again

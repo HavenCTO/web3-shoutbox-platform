@@ -18,15 +18,15 @@ function truncateHash(hash: string | null): string {
 function groupStateLabel(state: GroupState): { text: string; color: string } {
   switch (state) {
     case 'active':
-      return { text: 'Active', color: 'text-green-400' }
+      return { text: 'Active', color: 'text-arkiv' }
     case 'expiring':
-      return { text: 'Session expiring soon', color: 'text-yellow-400' }
+      return { text: 'Session expiring soon', color: 'text-evm' }
     case 'transitioning':
-      return { text: 'Switching sessions…', color: 'text-yellow-400' }
+      return { text: 'Switching sessions…', color: 'text-evm' }
     case 'waiting-for-group':
-      return { text: 'Setting up chat room…', color: 'text-blue-400' }
+      return { text: 'Setting up chat room…', color: 'text-ember' }
     default:
-      return { text: 'Idle', color: 'text-gray-400' }
+      return { text: 'Idle', color: 'text-ink-muted' }
   }
 }
 
@@ -59,10 +59,10 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
   if (xmtpStatus === 'error') {
     return (
       <div className="animate-fade-in flex h-full flex-col items-center justify-center gap-4 p-4">
-        <p className="text-red-400 text-sm">Failed to join the chat</p>
+        <p className="text-alert text-sm">Failed to join the chat</p>
         <button
           onClick={retry}
-          className="focus-ring rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="focus-ring rounded-lg bg-ember px-4 py-2 text-sm font-medium text-ember-ink hover:bg-ember-lift transition-colors"
         >
           Try again
         </button>
@@ -73,25 +73,25 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
   return (
     <div className="flex h-full flex-col gap-2 p-2">
       {/* Room URL bar */}
-      <div className="flex flex-col gap-1.5 rounded-lg border border-gray-700 bg-gray-800 p-2 sm:p-3">
+      <div className="flex flex-col gap-1.5 rounded-lg border border-void-high bg-void-container p-2 sm:p-3">
         <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 shrink-0 text-gray-400" />
+          <Globe className="h-4 w-4 shrink-0 text-ink-muted" />
           <input
             type="url"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             placeholder="Enter room URL…"
-            className="focus-ring flex-1 rounded bg-gray-900 px-2 py-1 text-xs text-gray-100 placeholder:text-gray-500 sm:px-3 sm:py-1.5 sm:text-sm"
+            className="focus-ring flex-1 rounded bg-void-sunk px-2 py-1 text-xs text-ink placeholder:text-ink-faint sm:px-3 sm:py-1.5 sm:text-sm"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2 px-6 text-[11px] text-gray-400 sm:gap-3 sm:text-xs">
+        <div className="flex flex-wrap items-center gap-2 px-6 text-xs text-ink-muted sm:gap-3 sm:text-xs">
           <span className="flex items-center gap-1">
             <Hash className="h-3 w-3" />
             {room.roomKey ? truncateHash(room.roomKey) : <Skeleton className="inline-block h-3 w-16" />}
           </span>
           <span className={stateInfo.color}>{stateInfo.text}</span>
           {room.isLeader && (
-            <span className="flex items-center gap-1 text-yellow-500">
+            <span className="flex items-center gap-1 text-evm">
               <Crown className="h-3 w-3" /> Host
             </span>
           )}

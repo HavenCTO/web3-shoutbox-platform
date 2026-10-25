@@ -22,24 +22,24 @@ export function IdentityBadge() {
   return (
     <div className="flex items-center gap-2">
       <span
-        className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold text-white"
+        className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
         style={{ backgroundColor: `hsl(${hue} 55% 42%)` }}
         aria-hidden
       >
         {initials}
       </span>
-      <span className="text-xs text-gray-200 sm:text-sm">
+      <span className="text-xs text-ink sm:text-sm">
         {displayName}
-        <span className="text-gray-400"> (you)</span>
+        <span className="text-ink-muted"> (you)</span>
       </span>
       <span
-        className={`h-2 w-2 rounded-full ${status === 'ready' ? 'bg-green-500' : 'bg-amber-400 animate-pulse'}`}
+        className={`h-2 w-2 rounded-full ${status === 'ready' ? 'bg-arkiv' : 'bg-evm animate-pulse'}`}
         title={status === 'ready' ? 'Connected' : 'Joining…'}
         aria-label={status === 'ready' ? 'Connected' : 'Joining'}
       />
       <button
         onClick={startFresh}
-        className="focus-ring rounded-lg p-1.5 text-gray-400 transition-colors hover:text-white"
+        className="focus-ring rounded-lg p-1.5 text-ink-muted transition-colors hover:text-ink"
         title="Start fresh with a new identity"
         aria-label="Start fresh with a new identity"
       >

@@ -42,7 +42,7 @@ export function App() {
                 position={isEmbed ? 'bottom-center' : 'bottom-right'}
                 theme="dark"
                 toastOptions={{
-                  className: 'bg-gray-800 text-gray-100 border-gray-700 text-xs sm:text-sm',
+                  className: 'bg-void-container text-ink border-void-high text-xs sm:text-sm',
                 }}
               />
             </ThemeProvider>

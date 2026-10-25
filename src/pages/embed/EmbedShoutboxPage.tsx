@@ -50,7 +50,7 @@ export function EmbedShoutboxPage() {
   const maxHeight = embedConfig.maxHeight
   const isDark = theme === 'dark'
 
-  const bg = isDark ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
+  const bg = isDark ? 'bg-void-sunk text-ink' : 'bg-paper text-ink-paper'
 
   // XMTP failed — chat renders immediately otherwise; joining runs in the background.
   if (xmtpStatus === 'error') {
@@ -60,12 +60,12 @@ export function EmbedShoutboxPage() {
         className={`animate-fade-in flex h-screen w-screen flex-col items-center justify-center gap-3 p-3 ${bg}`}
         style={{ maxHeight: maxHeight ? `${maxHeight}px` : undefined, minWidth: 280 }}
       >
-        <p className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        <p className={`text-xs sm:text-sm ${isDark ? 'text-ink-muted' : 'text-ink-faint'}`}>
           Couldn’t join the chat
         </p>
         <button
           onClick={retry}
-          className="focus-ring rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors sm:px-4 sm:py-2 sm:text-sm"
+          className="focus-ring rounded-lg bg-ember px-3 py-1.5 text-sm font-medium text-ember-ink hover:bg-ember-lift transition-colors sm:px-4 sm:py-2 sm:text-sm"
         >
           Try again
         </button>
@@ -82,16 +82,16 @@ export function EmbedShoutboxPage() {
       {/* Compact presence bar */}
       {showPresence && room.onlineUsers.length > 0 && (
         <div
-          className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b px-2 py-0.5 text-[11px] sm:px-3 sm:py-1 sm:text-xs ${isDark ? 'border-gray-700 bg-gray-800 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500'}`}
+          className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b px-2 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-xs ${isDark ? 'border-void-high bg-void-container text-ink-muted' : 'border-paper-high bg-paper text-ink-faint'}`}
         >
           <span className="inline-flex items-center gap-1">
             <span
-              className={`h-1.5 w-1.5 rounded-full ${presenceDegraded ? 'bg-amber-500' : 'bg-green-500'}`}
+              className={`h-1.5 w-1.5 rounded-full ${presenceDegraded ? 'bg-evm' : 'bg-arkiv'}`}
             />
             {room.onlineUsers.length} online
           </span>
           {presenceDegraded && (
-            <span className={isDark ? 'text-amber-400' : 'text-amber-700'}>Presence relay unreachable</span>
+            <span className={isDark ? 'text-evm' : 'text-evm'}>Presence relay unreachable</span>
           )}
         </div>
       )}

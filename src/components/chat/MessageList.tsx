@@ -78,23 +78,23 @@ export function MessageList({
       >
         {showSessionDivider && (
           <div className="animate-fade-in flex items-center gap-2 py-2">
-            <div className="flex-1 border-t border-gray-600" />
-            <span className="text-xs text-gray-400">New chat session started</span>
-            <div className="flex-1 border-t border-gray-600" />
+            <div className="flex-1 border-t border-void-highest" />
+            <span className="text-xs text-ink-muted">New chat session started</span>
+            <div className="flex-1 border-t border-void-highest" />
           </div>
         )}
 
         {isTransitioning && (
           <div className="animate-fade-in flex items-center justify-center gap-2 py-4">
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-            <span className="text-xs text-gray-400">Switching sessions…</span>
+            <Loader2 className="h-4 w-4 animate-spin text-ink-muted" />
+            <span className="text-xs text-ink-muted">Switching sessions…</span>
           </div>
         )}
 
         {messages.length === 0 && !isTransitioning && (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-500">
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-faint">
             <MessageSquare className="h-8 w-8" />
-            <p className="text-sm">No messages yet. Say hello! 👋</p>
+            <p className="text-sm">No messages yet. Say hello to start the conversation.</p>
           </div>
         )}
 
@@ -124,12 +124,12 @@ export function MessageList({
         <button
           onClick={scrollToBottom}
           className={cn(
-            'focus-ring absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-gray-700 p-2',
-            'shadow-lg hover:bg-gray-600 transition-colors',
+            'focus-ring absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-void-high p-2',
+            ' hover:bg-void-bright transition-colors',
           )}
           aria-label="Scroll to bottom"
         >
-          <ArrowDown className="h-4 w-4 text-gray-200" />
+          <ArrowDown className="h-4 w-4 text-ink" />
         </button>
       )}
     </div>

@@ -24,27 +24,27 @@ export function PresencePanel({
 
   if (isLoading) {
     return (
-      <div className="border-b border-gray-700 px-2 py-1.5 sm:px-3">
+      <div className="border-b border-void-high px-2 py-1.5 sm:px-3">
         <PresenceSkeleton count={3} />
       </div>
     )
   }
 
   return (
-    <details className="border-b border-gray-700 group">
-      <summary className="cursor-pointer px-2 py-1 text-[11px] text-gray-400 hover:text-gray-300 sm:px-3 sm:py-1.5 sm:text-xs select-none">
+    <details className="border-b border-void-high group">
+      <summary className="cursor-pointer px-2 py-1.5 text-sm text-ink-muted hover:text-ink sm:px-3 sm:py-1.5 select-none">
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="inline-flex items-center gap-1">
             {count > 0 && !presenceDegraded && (
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
+              <span className="h-1.5 w-1.5 rounded-full bg-arkiv inline-block" />
             )}
             {presenceDegraded && (
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" title="Presence relay unreachable" />
+              <span className="h-1.5 w-1.5 rounded-full bg-evm inline-block" title="Presence relay unreachable" />
             )}
             {count} online
           </span>
           {presenceDegraded && (
-            <span className="text-amber-500/95" title="Gun relay unreachable — list may only show you.">
+            <span className="text-evm" title="Gun relay unreachable — list may only show you.">
               Relay unreachable
             </span>
           )}
@@ -52,7 +52,7 @@ export function PresencePanel({
       </summary>
       <div className="px-2 pb-2 sm:px-3">
         {count === 0 ? (
-          <p className="text-xs text-gray-500">No one online yet</p>
+          <p className="text-sm text-ink-faint">No one online yet</p>
         ) : (
           <ul className="space-y-1">
             {users.map((user) => (

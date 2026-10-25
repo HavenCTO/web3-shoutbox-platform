@@ -37,7 +37,7 @@ export function XmtpStepIndicator({ status, compact }: XmtpStepIndicatorProps) {
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 text-xs text-yellow-400">
+      <div className="flex items-center gap-2 text-xs text-evm">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
         <span>Initializing messaging…</span>
       </div>
@@ -46,21 +46,21 @@ export function XmtpStepIndicator({ status, compact }: XmtpStepIndicatorProps) {
 
   return (
     <div className="flex flex-col gap-2" role="status" aria-label="Initializing encrypted messaging">
-      <p className="text-sm font-medium text-gray-200">Initializing encrypted messaging…</p>
+      <p className="text-sm font-medium text-ink">Initializing encrypted messaging…</p>
       <div className="flex items-center gap-1">
         {steps.map((step, i) => (
           <div key={step.label} className="flex items-center gap-1">
             <StepIcon state={step.state} />
             <span className={cn(
               'text-xs',
-              step.state === 'done' && 'text-green-400',
-              step.state === 'active' && 'text-yellow-400',
-              step.state === 'pending' && 'text-gray-500',
+              step.state === 'done' && 'text-arkiv',
+              step.state === 'active' && 'text-evm',
+              step.state === 'pending' && 'text-ink-faint',
             )}>
               {step.label}
             </span>
             {i < steps.length - 1 && (
-              <span className="mx-1 text-gray-600">→</span>
+              <span className="mx-1 text-ink-faint">→</span>
             )}
           </div>
         ))}
@@ -70,7 +70,7 @@ export function XmtpStepIndicator({ status, compact }: XmtpStepIndicatorProps) {
 }
 
 function StepIcon({ state }: { state: StepState }) {
-  if (state === 'done') return <Check className="h-3.5 w-3.5 text-green-400" />
-  if (state === 'active') return <Loader2 className="h-3.5 w-3.5 animate-spin text-yellow-400" />
-  return <span className="inline-block h-3.5 w-3.5 rounded-full border border-gray-600" />
+  if (state === 'done') return <Check className="h-3.5 w-3.5 text-arkiv" />
+  if (state === 'active') return <Loader2 className="h-3.5 w-3.5 animate-spin text-evm" />
+  return <span className="inline-block h-3.5 w-3.5 rounded-full border border-void-highest" />
 }

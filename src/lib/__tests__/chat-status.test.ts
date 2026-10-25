@@ -34,13 +34,13 @@ describe('getChatStatusPresentation', () => {
   it('shows setup copy for waiting-for-group', () => {
     const r = pres('waiting-for-group')
     expect(r.statusText).toContain('Setting up')
-    expect(r.dotClassName).toContain('amber')
+    expect(r.dotClassName).toContain('evm')
   })
 
   it('shows encrypted chat connecting when session is active but chat not ready', () => {
     const r = pres('active', { isMessagingReady: false, isLoadingConversation: false })
     expect(r.statusText).toBe('Connecting to encrypted chat…')
-    expect(r.dotClassName).toContain('sky')
+    expect(r.dotClassName).toContain('arkiv')
   })
 
   it('shows encrypted chat connecting while conversation is loading', () => {
@@ -51,26 +51,26 @@ describe('getChatStatusPresentation', () => {
   it('shows connected when messaging is ready', () => {
     const r = pres('active', { isMessagingReady: true, isLoadingConversation: false })
     expect(r.statusText).toBe('Connected · 2 online')
-    expect(r.dotClassName).toContain('green')
+    expect(r.dotClassName).toContain('arkiv')
   })
 
   it('shows reconnecting when there is a conversation error', () => {
     const r = pres('active', { hasConversationError: true, isMessagingReady: false })
     expect(r.statusText).toBe('Reconnecting…')
-    expect(r.dotClassName).toContain('amber')
+    expect(r.dotClassName).toContain('evm')
   })
 
   // Progressive connection step tests
   it('shows waiting-in-queue step', () => {
     const r = pres('active', { connectionStep: 'waiting-in-queue' })
     expect(r.statusText).toBe('In queue — session connecting…')
-    expect(r.dotClassName).toContain('sky')
+    expect(r.dotClassName).toContain('arkiv')
   })
 
   it('shows finding peers step', () => {
     const r = pres('active', { connectionStep: 'finding-peers' })
     expect(r.statusText).toBe('Finding peers…')
-    expect(r.dotClassName).toContain('sky')
+    expect(r.dotClassName).toContain('arkiv')
   })
 
   it('shows establishing encryption step', () => {
@@ -97,13 +97,13 @@ describe('getChatStatusPresentation', () => {
   it('shows syncing encryption state when auto-recovering', () => {
     const r = pres('active', { isAutoRecovering: true, hasConversationError: false })
     expect(r.statusText).toBe('Syncing encryption state…')
-    expect(r.dotClassName).toContain('sky')
+    expect(r.dotClassName).toContain('arkiv')
   })
 
   it('shows syncing encryption state even with error when auto-recovering', () => {
     const r = pres('active', { isAutoRecovering: true, hasConversationError: true })
     expect(r.statusText).toBe('Syncing encryption state…')
-    expect(r.dotClassName).toContain('sky')
+    expect(r.dotClassName).toContain('arkiv')
   })
 })
 
