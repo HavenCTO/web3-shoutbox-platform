@@ -23,9 +23,9 @@ export function UserAvatar({
   const hue = deriveAvatarHue(address)
   const initials = displayName.split(' ').map((w) => w[0]).join('').slice(0, 2)
   const nameText = (
-    <span className="text-sm text-gray-300 truncate">
+    <span className="text-sm text-ink truncate">
       {displayName}
-      {suffix ? <span className="text-gray-400">{suffix}</span> : null}
+      {suffix ? <span className="text-ink-muted">{suffix}</span> : null}
     </span>
   )
 
@@ -39,11 +39,11 @@ export function UserAvatar({
         {initials}
       </span>
       {showOnlineIndicator && (
-        <span className="inline-block h-2 w-2 rounded-full bg-green-500 flex-shrink-0" />
+        <span className="inline-block h-2 w-2 rounded-full bg-arkiv flex-shrink-0" />
       )}
       {verifiedByXmtp ? (
         <span className="inline-flex min-w-0 items-center gap-1" title={VERIFIED_TITLE}>
-          <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-400" aria-hidden />
+          <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-arkiv" aria-hidden />
           {nameText}
         </span>
       ) : (

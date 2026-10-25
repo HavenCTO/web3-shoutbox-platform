@@ -7,7 +7,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('animate-pulse rounded-md bg-gray-700/50', className)}
+      className={cn('animate-pulse rounded-md bg-void-high', className)}
       aria-hidden="true"
     />
   )
@@ -51,7 +51,7 @@ export function RoomCardSkeleton({ count = 3 }: { count?: number }) {
   return (
     <div className="space-y-2" aria-label="Loading rooms">
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3">
+        <div key={i} className="flex items-center justify-between rounded-lg border border-void-high bg-void-low px-4 py-3">
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-3 w-48" />

@@ -45,7 +45,7 @@ export interface ChatContainerProps {
 }
 
 export function ChatContainer({
-  messages, sendMessage, onlineUsers, groupState,
+  roomUrl, messages, sendMessage, onlineUsers, groupState,
   windowEpoch, isLoading, isTransitioning, messagingReady, error,
   showResyncCta = false,
   onResyncConversation,
@@ -90,22 +90,22 @@ export function ChatContainer({
   const bannerText = getChatConnectingBannerText(connectionStep)
 
   return (
-    <div className="flex h-full flex-col bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+    <div className="flex h-full flex-col bg-void-sunk rounded-lg border border-void-high overflow-hidden">
       {/* Status bar */}
-      <div className="flex items-center justify-between border-b border-gray-700 bg-gray-800 px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex items-center justify-between border-b border-void-high bg-void-container px-2 py-1.5 sm:px-3 sm:py-2">
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dotClassName}`} />
-          <span className="text-[11px] text-gray-300 sm:text-xs">{statusText}</span>
+          <span className="text-sm text-ink">{statusText}</span>
         </div>
         <div className="flex items-center gap-2">
           {queuedMessageCount > 0 && (
-            <span className="flex items-center gap-1 text-[11px] text-amber-400 sm:text-xs">
+            <span className="flex items-center gap-1 text-xs text-evm sm:text-xs">
               <Clock className="h-3 w-3" />
               {queuedMessageCount} queued
             </span>
           )}
           {windowEpoch > 0 && (
-            <span className="text-[11px] text-gray-400">#{windowEpoch}</span>
+            <span className="text-xs text-ink-muted">#{windowEpoch}</span>
           )}
         </div>
       </div>
@@ -115,13 +115,13 @@ export function ChatContainer({
 
       {/* Error banner — only show for non-auto-recovering errors */}
       {error && !isAutoRecovering && (
-        <div className="flex flex-wrap items-center gap-2 bg-red-900/40 px-2 py-1 text-[11px] text-red-300 sm:px-3 sm:py-1.5 sm:text-xs">
+        <div className="flex flex-wrap items-center gap-2 bg-alert/15 px-2 py-1 text-xs text-alert sm:px-3 sm:py-1.5 sm:text-xs">
           <span className="min-w-0 flex-1">{error}</span>
           {showInitRetryCta && onRetryConversationInit && (
             <button
               type="button"
               onClick={onRetryConversationInit}
-              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[11px] font-medium text-red-100 hover:bg-red-900/60 sm:text-xs"
+              className="shrink-0 rounded border border-alert/60 bg-alert/10 px-2 py-0.5 text-xs font-medium text-ink hover:bg-alert/25 sm:text-xs"
             >
               Retry
             </button>
@@ -131,7 +131,7 @@ export function ChatContainer({
               type="button"
               onClick={() => void onResyncConversation()}
               disabled={isResyncing}
-              className="shrink-0 rounded border border-red-400/60 bg-red-950/50 px-2 py-0.5 text-[11px] font-medium text-red-100 hover:bg-red-900/60 disabled:opacity-60 sm:text-xs"
+              className="shrink-0 rounded border border-alert/60 bg-alert/10 px-2 py-0.5 text-xs font-medium text-ink hover:bg-alert/25 disabled:opacity-60 sm:text-xs"
             >
               {isResyncing ? 'Resyncing…' : 'Resync'}
             </button>
@@ -141,30 +141,30 @@ export function ChatContainer({
 
       {/* Auto-recovery banner — soft, non-alarming */}
       {isAutoRecovering && (
-        <div className="flex items-center gap-2 border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 text-[11px] text-sky-200/95 sm:px-3 sm:py-2 sm:text-xs">
-          <Loader2 className="h-3 w-3 animate-spin text-sky-400" />
+        <div className="flex items-center gap-2 border-b border-arkiv/30 bg-arkiv/10 px-2 py-1.5 text-xs text-arkiv sm:px-3 sm:py-2 sm:text-xs">
+          <Loader2 className="h-3 w-3 animate-spin text-arkiv" />
           <span>Syncing encryption state — this usually resolves in a few seconds.</span>
         </div>
       )}
 
       {/* Connecting banner with progressive step info */}
       {showConnectingBanner && (
-        <div className="border-b border-sky-900/50 bg-sky-950/40 px-2 py-1.5 sm:px-3 sm:py-2">
-          <div className="flex items-center gap-2 text-[11px] text-sky-200/95 sm:text-xs">
-            <Loader2 className="h-3 w-3 animate-spin text-sky-400 shrink-0" />
+        <div className="border-b border-arkiv/30 bg-arkiv/10 px-2 py-1.5 sm:px-3 sm:py-2">
+          <div className="flex items-center gap-2 text-xs text-arkiv sm:text-xs">
+            <Loader2 className="h-3 w-3 animate-spin text-arkiv shrink-0" />
             <span>{bannerText}</span>
           </div>
           {/* Connection progress dots */}
           {connectionStep && connectionStep !== 'ready' && (
             <div className="flex items-center gap-1.5 mt-1.5 px-5">
               <ConnectionProgressDot active={connectionStep === 'finding-peers'} completed={isStepCompleted('finding-peers', connectionStep)} />
-              <div className="h-px w-3 bg-gray-600" />
+              <div className="h-px w-3 bg-void-highest" />
               <ConnectionProgressDot active={connectionStep === 'establishing-encryption'} completed={isStepCompleted('establishing-encryption', connectionStep)} />
-              <div className="h-px w-3 bg-gray-600" />
+              <div className="h-px w-3 bg-void-highest" />
               <ConnectionProgressDot active={connectionStep === 'syncing-members'} completed={isStepCompleted('syncing-members', connectionStep)} />
-              <div className="h-px w-3 bg-gray-600" />
+              <div className="h-px w-3 bg-void-highest" />
               <ConnectionProgressDot active={connectionStep === 'syncing-history'} completed={isStepCompleted('syncing-history', connectionStep)} />
-              <div className="h-px w-3 bg-gray-600" />
+              <div className="h-px w-3 bg-void-highest" />
               <ConnectionProgressDot active={connectionStep === 'finalizing'} completed={false} />
             </div>
           )}
@@ -174,19 +174,26 @@ export function ChatContainer({
       {/* Waiting for peers — deferred MLS creation */}
       {isWaitingForPeers ? (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 p-4">
-          <div className="h-10 w-10 rounded-full bg-sky-950/60 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-sky-400" />
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-arkiv" />
           </div>
-          <p className="text-sm font-medium text-gray-300">Waiting for others to join…</p>
-          <p className="text-xs text-gray-400 text-center max-w-xs">
+          <p className="text-sm font-medium text-ink">Waiting for others to join…</p>
+          <p className="text-sm text-ink-muted text-center max-w-sm">
             Encrypted chat will start when another person enters the room.
-            You can type a message now — it will send automatically.
+            You can type a message now. It will send automatically.
           </p>
+          <button
+            type="button"
+            onClick={() => { void navigator.clipboard?.writeText(roomUrl) }}
+            className="focus-ring rounded-md bg-ember px-4 py-2 text-sm font-medium text-ember-ink transition-colors hover:bg-ember-lift"
+          >
+            Copy room link to invite someone
+          </button>
         </div>
       ) : isSettingUp && !isLoading ? (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 p-4">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
-          <p className="text-xs text-gray-400">Setting up chat room…</p>
+          <Loader2 className="h-5 w-5 animate-spin text-ember" />
+          <p className="text-xs text-ink-muted">Setting up chat room…</p>
           <MessageSkeleton count={3} />
         </div>
       ) : (
@@ -232,10 +239,10 @@ function isStepCompleted(step: ConnectionStep, currentStep: ConnectionStep): boo
 
 function ConnectionProgressDot({ active, completed }: { active: boolean; completed: boolean }) {
   if (completed) {
-    return <span className="h-2 w-2 rounded-full bg-green-500" />
+    return <span className="h-2 w-2 rounded-full bg-arkiv" />
   }
   if (active) {
-    return <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
+    return <span className="h-2 w-2 rounded-full bg-arkiv animate-pulse" />
   }
-  return <span className="h-2 w-2 rounded-full bg-gray-600" />
+  return <span className="h-2 w-2 rounded-full bg-void-highest" />
 }

@@ -92,10 +92,10 @@ export function MessageInput({
   }
 
   return (
-    <div className="border-t border-gray-700 bg-gray-800">
+    <div className="border-t border-void-high bg-void-container">
       {/* Queued message indicator */}
       {queuedCount > 0 && (
-        <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-amber-400/90 sm:px-3 sm:text-xs">
+        <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-evm sm:px-3 sm:text-xs">
           <Clock className="h-3 w-3" />
           <span>{queuedCount} message{queuedCount > 1 ? 's' : ''} queued — will send when connected</span>
         </div>
@@ -109,12 +109,12 @@ export function MessageInput({
           disabled={!canType}
           rows={1}
           className={cn(
-            'focus-ring flex-1 resize-none rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs text-gray-100 sm:px-3 sm:py-2 sm:text-sm',
-            'placeholder:text-gray-500',
+            'focus-ring flex-1 resize-none rounded-lg bg-void-sunk px-2.5 py-1.5 text-xs text-ink sm:px-3 sm:py-2 sm:text-sm',
+            'placeholder:text-ink-faint',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             'max-h-24 overflow-y-auto',
             // Subtle visual hint when queueing is active
-            allowQueueing && !messagingReady && 'ring-1 ring-amber-500/30',
+            allowQueueing && !messagingReady && 'ring-1 ring-evm/30',
           )}
         />
         <button
@@ -124,21 +124,21 @@ export function MessageInput({
             'focus-ring rounded-lg p-1.5 transition-colors sm:p-2',
             // Different color when queueing vs sending directly
             messagingReady
-              ? 'bg-blue-600 hover:bg-blue-500'
+              ? 'bg-ember hover:bg-ember-lift'
               : allowQueueing
-                ? 'bg-amber-600 hover:bg-amber-500'
-                : 'bg-blue-600 hover:bg-blue-500',
+                ? 'bg-evm hover:bg-evm'
+                : 'bg-ember hover:bg-ember-lift',
             'disabled:opacity-40 disabled:cursor-not-allowed',
           )}
           aria-label={messagingReady ? 'Send message' : 'Queue message'}
           title={messagingReady ? 'Send message' : 'Queue message — will send when connected'}
         >
           {messagingReady ? (
-            <Send className="h-4 w-4 text-white" />
+            <Send className="h-4 w-4 text-ember-ink" />
           ) : allowQueueing ? (
-            <Clock className="h-4 w-4 text-white" />
+            <Clock className="h-4 w-4 text-ember-ink" />
           ) : (
-            <Send className="h-4 w-4 text-white" />
+            <Send className="h-4 w-4 text-ember-ink" />
           )}
         </button>
       </div>

@@ -58,13 +58,13 @@ export function MessageBubble({
         className={cn(
           'rounded-2xl px-2.5 py-1.5 text-xs break-words whitespace-pre-wrap sm:px-3 sm:py-2 sm:text-sm',
           isMine
-            ? 'bg-blue-600 text-white rounded-br-sm'
-            : 'bg-gray-700 text-gray-100 rounded-bl-sm',
+            ? 'bg-ember text-ember-ink rounded-br-md'
+            : 'bg-void-high text-ink rounded-bl-sm',
         )}
       >
         {message.content}
       </div>
-      <span className="text-[11px] text-gray-400 px-1">{formatTimestamp(message.timestamp)}</span>
+      <span className="text-xs text-ink-muted px-1">{formatTimestamp(message.timestamp)}</span>
     </div>
   )
 }

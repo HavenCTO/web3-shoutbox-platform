@@ -1,70 +1,69 @@
 @import "tailwindcss";
 
-/* Custom animations */
+/* Haven tokens, mirrored from haven-mobile HavenPalette.kt (authored in OKLCH).
+   Void is the default ground, Paper the light ground, Ember the one accent.
+   Meaning hues only encode data: Arkiv (verified/online), EVM (host/warning), Alert (failure). */
+@theme {
+  --color-void-sunk: oklch(0.078 0.013 266);
+  --color-void: oklch(0.132 0.017 266);
+  --color-void-low: oklch(0.158 0.018 266);
+  --color-void-container: oklch(0.186 0.02 266);
+  --color-void-high: oklch(0.216 0.021 266);
+  --color-void-highest: oklch(0.248 0.022 266);
+  --color-void-bright: oklch(0.29 0.022 266);
+  --color-paper: oklch(0.974 0.0075 85);
+  --color-paper-low: oklch(0.96 0.009 83);
+  --color-paper-high: oklch(0.933 0.013 81);
+  --color-paper-raised: oklch(0.995 0.004 88);
+  --color-ember: oklch(0.715 0.19 44);
+  --color-ember-deep: oklch(0.575 0.203 33);
+  --color-ember-lift: oklch(0.8 0.17 54);
+  --color-ember-ink: oklch(0.16 0.018 60);
+  --color-ink: oklch(0.968 0.005 85);
+  --color-ink-muted: oklch(0.735 0.014 266);
+  --color-ink-faint: oklch(0.62 0.016 266);
+  --color-ink-paper: oklch(0.19 0.013 266);
+  --color-arkiv: oklch(0.83 0.2 152);
+  --color-evm: oklch(0.86 0.17 78);
+  --color-alert: oklch(0.68 0.19 25);
+  --font-sans: ui-sans-system, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body {
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+::selection { background: var(--color-ember); color: var(--color-ember-ink); }
+
+/* Feedback motion only: a row arriving, a panel opening. Reduced motion keeps content. */
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
 }
-
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up, .animate-slide-in, .animate-fade-in { animation: none; }
+}
+.animate-fade-in-up { animation: fade-in-up 180ms ease-out both; }
+.animate-slide-in { animation: slide-in 180ms ease-out both; }
+.animate-fade-in { animation: fade-in 180ms ease-out both; }
 
 /* Thin scrollbar for message lists */
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(75 85 99 / 0.5) transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgb(75 85 99 / 0.5);
-  border-radius: 9999px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(107 114 128 / 0.7);
-}
-
-/* Animation utility classes */
-.animate-fade-in-up {
-  animation: fade-in-up 200ms ease-out both;
-}
-
-.animate-slide-in {
-  animation: slide-in 200ms ease-out both;
-}
-
-.animate-fade-in {
-  animation: fade-in 200ms ease-out both;
-}
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: var(--color-void-bright) transparent; }
+.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background-color: var(--color-void-bright); border-radius: 9999px; }
 
 /* Focus ring for keyboard navigation */
 .focus-ring {
-  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900;
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ember focus-visible:ring-offset-1 focus-visible:ring-offset-void;
 }
