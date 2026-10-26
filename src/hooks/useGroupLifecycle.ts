@@ -21,6 +21,10 @@ import {
 } from '@/services/groupLifecycleService'
 import { subscribeToGroup } from '@/lib/group-lifecycle'
 import { BRIDGE_ADDRESSES } from '@/lib/bridgeMembers'
+import { sleep } from '@/lib/waitForGroupConversation'
+
+/** Grace before re-checking a NOT_MEMBER_YET join with fresh presence. */
+const NOT_MEMBER_RECHECK_MS = 20_000
 import { teardownActiveGroupForWindowTransition } from '@/lib/windowTransitionTeardown'
 
 const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 15
@@ -208,12 +212,23 @@ export function useGroupLifecycle(roomKey: string | null) {
             return
           }
           if (joinResult.error.code === 'NOT_MEMBER_YET') {
-            // Orphaned group: creator gone, nobody can add us. As leader,
-            // supersede it with a fresh epoch instead of waiting out the
-            // window; otherwise fall back to the advertised group.
-            if (isLeader && isGroupOrphaned(existing.data, onlineUsers)) {
+            // Not a member yet. The leader may add us within seconds, or
+            // the group may be orphaned — but at load time the creator's
+            // presence can still look fresh (30s TTL), so re-check once
+            // after a grace period with a fresh presence read before
+            // deciding. Only then fall back to the advertised group.
+            await sleep(NOT_MEMBER_RECHECK_MS)
+            if (cancelled) return
+            const retryJoin = await discoverAndJoinGroup(client, gun, roomKey)
+            if (cancelled) return
+            if (retryJoin.ok) {
+              activateWindow(retryJoin.data.groupWindow)
+              return
+            }
+            const freshUsers = usePresenceStore.getState().onlineUsers
+            if (isLeader && isGroupOrphaned(existing.data, freshUsers)) {
               const takeResult = await createGroupAsLeader(
-                client, gun, roomKey, onlineUsers, existing.data.epoch + 1, WINDOW_MINUTES,
+                client, gun, roomKey, freshUsers, existing.data.epoch + 1, WINDOW_MINUTES,
               )
               if (cancelled) return
               if (takeResult.ok) {
@@ -374,9 +389,18 @@ export function useGroupLifecycle(roomKey: string | null) {
               return
             }
             if (joinResult.error.code === 'NOT_MEMBER_YET') {
-              if (isLeader && isGroupOrphaned(existing.data, currentOnlineUsers)) {
+              // Same grace re-check as the initial path: fresh presence
+              // decides orphan takeover; a leader add may land meanwhile.
+              await sleep(NOT_MEMBER_RECHECK_MS)
+              const retryJoin = await discoverAndJoinGroup(client!, gun, roomKey!)
+              if (retryJoin.ok) {
+                activateWindow(retryJoin.data.groupWindow)
+                return
+              }
+              const freshUsers = usePresenceStore.getState().onlineUsers
+              if (isLeader && isGroupOrphaned(existing.data, freshUsers)) {
                 const takeResult = await createGroupAsLeader(
-                  client!, gun, roomKey!, currentOnlineUsers, existing.data.epoch + 1, WINDOW_MINUTES,
+                  client!, gun, roomKey!, freshUsers, existing.data.epoch + 1, WINDOW_MINUTES,
                 )
                 if (takeResult.ok) {
                   activateWindow(takeResult.data)
