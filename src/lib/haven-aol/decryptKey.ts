@@ -13,7 +13,7 @@ import { requestDecryptionKey } from './core/canister'
 import { getAolConfig, getAgent, requestDecryptionKeyV3, gateErrorKind, gateErrorText } from './canisterV3'
 import { getGuestWallet, randomGateNonce, type GuestWallet } from './guestWallet'
 import { isChunkedFormat, decryptChunkedStream, concatenateChunks } from './chunkedDecrypt'
-import { getVetKey, setVetKey, getAesKey, setAesKey, clearKey } from './keyStore'
+import { getVetKey, setVetKey, getAesKey, setAesKey } from './keyStore'
 import { EPOCH_LENGTH_SECONDS } from './core/v3'
 
 export class GateUnlockError extends Error {
