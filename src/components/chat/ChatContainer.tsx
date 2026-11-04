@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { requestGateTopUp } from '@/lib/gateFaucet'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useAuthStore } from '@/stores/authStore'
 import { buildInboxAddressLookup } from '@/lib/inbox-display'
@@ -60,6 +61,8 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const address = useAuthStore((s) => s.address)
   const isConnected = Boolean(address)
+  // Join = top-up: fund the guest identity to the gate threshold (Sepolia).
+  useEffect(() => { if (address) requestGateTopUp(address) }, [address])
   const { inboxId, status: xmtpStatus } = useXmtpClient()
 
   const inboxToAddress = useMemo(

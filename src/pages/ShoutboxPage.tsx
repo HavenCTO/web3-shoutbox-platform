@@ -4,6 +4,7 @@ import { Crown, Hash, Globe } from 'lucide-react'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
 import { ChatContainer } from '@/components/chat/ChatContainer'
+import { PlayerDock } from '@/components/chat/PlayerDock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { GroupState } from '@/types/group'
 
@@ -121,6 +122,7 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
           queuedMessageCount={room.queuedMessageCount}
         />
       </div>
+      <PlayerDock />
     </div>
   )
 }

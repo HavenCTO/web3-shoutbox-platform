@@ -27,7 +27,7 @@ import { sleep } from '@/lib/waitForGroupConversation'
 const NOT_MEMBER_RECHECK_MS = 20_000
 import { teardownActiveGroupForWindowTransition } from '@/lib/windowTransitionTeardown'
 
-const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 15
+const WINDOW_MINUTES = Number(import.meta.env.VITE_SLIDING_WINDOW_MINUTES) || 60
 const LEADER_FAILOVER_TIMEOUT_MS = 15_000
 const TRANSITION_BUFFER_MS = 30_000
 const RETRY_DELAY_MS = 3_000

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/presence/UserAvatar'
 import type { ShoutboxMessage } from '@/types/message'
+import { TrackCard } from './TrackCard'
 
 interface MessageBubbleProps {
   message: ShoutboxMessage
@@ -63,6 +64,7 @@ export function MessageBubble({
         )}
       >
         {message.content}
+        <TrackCard content={message.content} />
       </div>
       <span className="text-xs text-ink-muted px-1">{formatTimestamp(message.timestamp)}</span>
     </div>

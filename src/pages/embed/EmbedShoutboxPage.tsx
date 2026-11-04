@@ -4,6 +4,7 @@ import { useGunPresenceSyncStore } from '@/stores/gunPresenceSyncStore'
 import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { ChatContainer } from '@/components/chat/ChatContainer'
+import { PlayerDock } from '@/components/chat/PlayerDock'
 
 const DEFAULT_ROOM = 'https://shoutbox.pinme.dev/default'
 
@@ -122,6 +123,7 @@ export function EmbedShoutboxPage() {
           queuedMessageCount={room.queuedMessageCount}
         />
       </div>
+      <PlayerDock />
     </div>
   )
 }

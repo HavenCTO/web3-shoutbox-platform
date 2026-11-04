@@ -30,7 +30,16 @@ const envSchema = z.object({
     .optional()
     .default('http://localhost:8765/gun'),
 
-  VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(15),
+  VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(60),
+
+  // Embedded playback: Arkiv (Tiramisu) RPC for track lookup. Public read-only.
+  VITE_ARKIV_RPC_URL: z.string().url().optional().default('https://rpc.tiramisu.db-chain.testnet.arkiv.network'),
+
+  // Sepolia RPC for silent gate-balance reads for the guest identity.
+  VITE_SEPOLIA_RPC_URL: z.string().url().optional().default('https://ethereum-sepolia-rpc.publicnode.com'),
+
+  // Join = top-up faucet (scripts/gate-faucet.mjs). Empty = disabled.
+  VITE_GATE_FAUCET_URL: z.string().optional().default(''),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -42,6 +51,9 @@ function getEnv(): Env {
     VITE_APP_URL: normalizeViteAppUrl(String(import.meta.env.VITE_APP_URL ?? '')),
     VITE_GUN_RELAY_PEERS: import.meta.env.VITE_GUN_RELAY_PEERS || undefined,
     VITE_SLIDING_WINDOW_MINUTES: import.meta.env.VITE_SLIDING_WINDOW_MINUTES || undefined,
+    VITE_ARKIV_RPC_URL: import.meta.env.VITE_ARKIV_RPC_URL || undefined,
+    VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || undefined,
+    VITE_GATE_FAUCET_URL: import.meta.env.VITE_GATE_FAUCET_URL || undefined,
   }
 
   const result = envSchema.safeParse(raw)
