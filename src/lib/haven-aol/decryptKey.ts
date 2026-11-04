@@ -13,6 +13,11 @@ import { requestDecryptionKey } from './core/canister'
 import { getAolConfig, getAgent, requestDecryptionKeyV3, gateErrorKind, gateErrorText } from './canisterV3'
 import { getGuestWallet, randomGateNonce, type GuestWallet } from './guestWallet'
 import { isChunkedFormat, decryptChunkedStream, concatenateChunks } from './chunkedDecrypt'
+import { getVetKey, setVetKey, getAesKey, setAesKey, clearKey } from './keyStore'
+import { EPOCH_LENGTH_SECONDS } from './core/v3'
+import { createPublicClient, http, parseAbi } from 'viem'
+import { sepolia } from 'viem/chains'
+import { env } from '@/config/env'
 
 export class GateUnlockError extends Error {
   kind: 'insufficient' | 'unsupported' | 'failed'
@@ -34,7 +39,18 @@ async function unwrapV3(gate: Record<string, unknown>, wallet: GuestWallet): Pro
   const cacheHit = aesCache.get(meta.encryptedAesKey)
   if (cacheHit) return cacheHit
   const gateKey = `${meta.chain}:${meta.tokenAddress}:${meta.threshold}:${meta.epoch}`
+  const epochEnd = v3KeyExpiryMs(meta.epoch)
   let vetKey = vetKeyCache.get(gateKey)
+  if (!vetKey && Date.now() <= epochEnd) {
+    const stored = await getVetKey(gateKey)
+    if (stored) {
+      try {
+        const { VetKey } = await import('@icp-sdk/vetkeys')
+        vetKey = VetKey.deserialize(stored)
+        vetKeyCache.set(gateKey, vetKey)
+      } catch { vetKey = undefined }
+    }
+  }
   if (!vetKey) {
     const cfg = getAolConfig()
     const epoch = BigInt(meta.epoch)
@@ -56,12 +72,14 @@ async function unwrapV3(gate: Record<string, unknown>, wallet: GuestWallet): Pro
       const derivation = await computeDerivationInputV3(meta.chain, meta.tokenAddress, BigInt(meta.threshold), epoch)
       vetKey = recoverVetKey(result.ok.encryptedKey, secretKey, result.ok.verificationKey, derivation)
       vetKeyCache.set(gateKey, vetKey)
+      await setVetKey(gateKey, vetKey.serialize(), epochEnd)
       break
     }
   }
   if (!vetKey) throw new GateUnlockError('failed', 'Could not obtain the unlock key.')
   const aes = ibeDecryptAesKey(meta.encryptedAesKey, vetKey)
   aesCache.set(meta.encryptedAesKey, aes)
+  await setAesKey(meta.encryptedAesKey, aes, Math.min(epochEnd, Date.now() + 24 * 3600_000))
   return aes
 }
 
@@ -87,16 +105,77 @@ async function unwrapV1(gate: Record<string, unknown>, wallet: GuestWallet): Pro
   const vetKey = recoverVetKey(result.ok.encryptedKey, secretKey, result.ok.verificationKey, derivation)
   const aes = ibeDecryptAesKey(meta.encryptedAesKey, vetKey)
   aesCache.set(meta.encryptedAesKey, aes)
+  await setAesKey(meta.encryptedAesKey, aes, Date.now() + 24 * 3600_000)
   return aes
+}
+
+const BALANCE_OF_ABI = parseAbi(['function balanceOf(address) view returns (uint256)'])
+
+/** Epoch expiry for a v3 VetKey: keys die at the epoch boundary. */
+export function v3KeyExpiryMs(epoch: number | bigint): number {
+  return (Number(epoch) + 1) * EPOCH_LENGTH_SECONDS * 1000
+}
+
+/**
+ * Balance recheck before serving a cached key: one cheap Sepolia RPC read,
+ * zero canister calls. Sold or transferred-away access locks out again.
+ * Throws GateUnlockError('insufficient') when the guest is below threshold.
+ */
+export async function ensureHolder(gate: Record<string, unknown>): Promise<void> {
+  if (gate.chain !== 'EthSepolia' || typeof gate.tokenAddress !== 'string') return
+  let threshold: bigint
+  try { threshold = BigInt(String(gate.threshold)) } catch { return }
+  if (threshold <= 0n) return
+  const client = createPublicClient({ chain: sepolia, transport: http(env.VITE_SEPOLIA_RPC_URL) })
+  const balance = await client.readContract({
+    address: gate.tokenAddress as `0x${string}`, abi: BALANCE_OF_ABI,
+    functionName: 'balanceOf', args: [getGuestWallet().account.address as `0x${string}`],
+  })
+  if (balance < threshold) throw new GateUnlockError('insufficient', `Guest holds ${balance} of ${threshold} required units.`)
 }
 
 /** AES key for a gated track, or a GateUnlockError explaining why not. */
 export async function unwrapTrackKey(gateRaw: unknown, wallet: GuestWallet = getGuestWallet()): Promise<Uint8Array> {
   const gate = parseGate(gateRaw)
   if (!gate) throw new GateUnlockError('failed', 'This release has no readable gate.')
+  if (gate.version !== 3 && gate.version !== 1) {
+    throw new GateUnlockError('unsupported', `Gate v${String(gate.version)} releases cannot be unlocked in the shoutbox yet.`)
+  }
+  // Persistent cache first: no VetKD round-trip, no canister call.
+  const cacheId = gate.version === 3
+    ? (parseV3Ids(gate) ?? null)
+    : (typeof gate.encryptedAesKey === 'string' ? gate.encryptedAesKey : null)
+  if (cacheId) {
+    const mem = aesCache.get(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
+    const disk = mem ?? await getAesKey(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
+    if (disk) {
+      try {
+        await ensureHolder(gate)
+        aesCache.set(typeof cacheId === 'string' ? cacheId : cacheId.aesId, disk)
+        return disk
+      } catch (e) {
+        if (e instanceof GateUnlockError && e.kind === 'insufficient') {
+          aesCache.delete(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
+          await clearKey(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
+          throw e
+        }
+        // RPC hiccup: fall through to a fresh unwrap rather than lock out.
+      }
+    }
+  }
   if (gate.version === 3) return unwrapV3(gate, wallet)
-  if (gate.version === 1) return unwrapV1(gate, wallet)
-  throw new GateUnlockError('unsupported', `Gate v${String(gate.version)} releases cannot be unlocked in the shoutbox yet.`)
+  return unwrapV1(gate, wallet)
+}
+
+function parseV3Ids(gate: Record<string, unknown>): { aesId: string; gateKey: string; epochEnd: number } | null {
+  if (typeof gate.encryptedAesKey !== 'string' || typeof gate.epoch !== 'number') return null
+  const epochEnd = v3KeyExpiryMs(gate.epoch)
+  if (Date.now() > epochEnd) return null
+  return {
+    aesId: gate.encryptedAesKey,
+    gateKey: `${String(gate.chain)}:${String(gate.tokenAddress)}:${String(gate.threshold)}:${gate.epoch}`,
+    epochEnd,
+  }
 }
 
 /** Decrypt sealed bytes (single-blob Herald seals, or haven-cli chunked). */

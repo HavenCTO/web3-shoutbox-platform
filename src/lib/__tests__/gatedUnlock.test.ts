@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseGate, GateUnlockError, unwrapTrackKey } from '../haven-aol/decryptKey'
+import { parseGate, GateUnlockError, unwrapTrackKey, v3KeyExpiryMs } from '../haven-aol/decryptKey'
 import { getGuestWallet, randomGateNonce } from '../haven-aol/guestWallet'
 import { gateErrorKind } from '../haven-aol/canisterV3'
 import { parseGateMetadataV3 } from '../haven-aol/core/v3'
@@ -33,6 +33,15 @@ describe('gate parsing and dispatch', () => {
     expect(gateErrorKind({ InsufficientBalance: { required: 1n, actual: 0n } })).toBe('insufficient')
     expect(gateErrorKind({ NonceAlreadyUsed: null })).toBe('nonce')
     expect(gateErrorKind({ VetKDError: 'x' })).toBe('other')
+  })
+})
+
+describe('epoch expiry matches the canister 30-day epoch', () => {
+  it('expires exactly at the Unix-anchored epoch end', () => {
+    const EPOCH = 2_592_000_000
+    expect(v3KeyExpiryMs(692) % EPOCH).toBe(0)
+    expect(v3KeyExpiryMs(692) - 692 * EPOCH).toBe(EPOCH)
+    expect(v3KeyExpiryMs(693) - v3KeyExpiryMs(692)).toBe(EPOCH)
   })
 })
 
