@@ -15,9 +15,6 @@ import { getGuestWallet, randomGateNonce, type GuestWallet } from './guestWallet
 import { isChunkedFormat, decryptChunkedStream, concatenateChunks } from './chunkedDecrypt'
 import { getVetKey, setVetKey, getAesKey, setAesKey, clearKey } from './keyStore'
 import { EPOCH_LENGTH_SECONDS } from './core/v3'
-import { createPublicClient, http, parseAbi } from 'viem'
-import { sepolia } from 'viem/chains'
-import { env } from '@/config/env'
 
 export class GateUnlockError extends Error {
   kind: 'insufficient' | 'unsupported' | 'failed'
@@ -109,29 +106,9 @@ async function unwrapV1(gate: Record<string, unknown>, wallet: GuestWallet): Pro
   return aes
 }
 
-const BALANCE_OF_ABI = parseAbi(['function balanceOf(address) view returns (uint256)'])
-
 /** Epoch expiry for a v3 VetKey: keys die at the epoch boundary. */
 export function v3KeyExpiryMs(epoch: number | bigint): number {
   return (Number(epoch) + 1) * EPOCH_LENGTH_SECONDS * 1000
-}
-
-/**
- * Balance recheck before serving a cached key: one cheap Sepolia RPC read,
- * zero canister calls. Sold or transferred-away access locks out again.
- * Throws GateUnlockError('insufficient') when the guest is below threshold.
- */
-export async function ensureHolder(gate: Record<string, unknown>): Promise<void> {
-  if (gate.chain !== 'EthSepolia' || typeof gate.tokenAddress !== 'string') return
-  let threshold: bigint
-  try { threshold = BigInt(String(gate.threshold)) } catch { return }
-  if (threshold <= 0n) return
-  const client = createPublicClient({ chain: sepolia, transport: http(env.VITE_SEPOLIA_RPC_URL) })
-  const balance = await client.readContract({
-    address: gate.tokenAddress as `0x${string}`, abi: BALANCE_OF_ABI,
-    functionName: 'balanceOf', args: [getGuestWallet().account.address as `0x${string}`],
-  })
-  if (balance < threshold) throw new GateUnlockError('insufficient', `Guest holds ${balance} of ${threshold} required units.`)
 }
 
 /** AES key for a gated track, or a GateUnlockError explaining why not. */
@@ -141,26 +118,17 @@ export async function unwrapTrackKey(gateRaw: unknown, wallet: GuestWallet = get
   if (gate.version !== 3 && gate.version !== 1) {
     throw new GateUnlockError('unsupported', `Gate v${String(gate.version)} releases cannot be unlocked in the shoutbox yet.`)
   }
-  // Persistent cache first: no VetKD round-trip, no canister call.
-  const cacheId = gate.version === 3
-    ? (parseV3Ids(gate) ?? null)
+  // Persistent cache first: no VetKD round-trip, no canister call. The
+  // cache is a shortcut, not enforcement — the canister is the real gate
+  // at first unlock, and a cached key replays until it expires.
+  const aesId = gate.version === 3
+    ? (parseV3Ids(gate)?.aesId ?? null)
     : (typeof gate.encryptedAesKey === 'string' ? gate.encryptedAesKey : null)
-  if (cacheId) {
-    const mem = aesCache.get(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
-    const disk = mem ?? await getAesKey(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
+  if (aesId) {
+    const disk = aesCache.get(aesId) ?? await getAesKey(aesId)
     if (disk) {
-      try {
-        await ensureHolder(gate)
-        aesCache.set(typeof cacheId === 'string' ? cacheId : cacheId.aesId, disk)
-        return disk
-      } catch (e) {
-        if (e instanceof GateUnlockError && e.kind === 'insufficient') {
-          aesCache.delete(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
-          await clearKey(typeof cacheId === 'string' ? cacheId : cacheId.aesId)
-          throw e
-        }
-        // RPC hiccup: fall through to a fresh unwrap rather than lock out.
-      }
+      aesCache.set(aesId, disk)
+      return disk
     }
   }
   if (gate.version === 3) return unwrapV3(gate, wallet)

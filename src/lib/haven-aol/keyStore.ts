@@ -6,9 +6,9 @@
  *  - VetKey per (chain, token, threshold, epoch) — expires at epoch end.
  *  - AES content key per track — expires with its VetKey's epoch or 24h.
  *
- * A cache hit still gets one cheap Sepolia `balanceOf` RPC read (not a
- * canister call) before use, so revoked/sold access locks out again.
- * In-memory Maps stay as the hot layer in front of this store.
+ * The cache is a shortcut, not enforcement: the canister gates first
+ * unlock, and a cached key replays until it expires. In-memory Maps stay
+ * as the hot layer in front of this store.
  */
 export interface StoredBytes { bytes: Uint8Array; expiresAt: number }
 
