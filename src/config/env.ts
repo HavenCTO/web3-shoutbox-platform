@@ -40,6 +40,12 @@ const envSchema = z.object({
 
   // Join = top-up faucet (scripts/gate-faucet.mjs). Empty = disabled.
   VITE_GATE_FAUCET_URL: z.string().optional().default(''),
+
+  // Haven-AOL gated unlock (defaults match the deployed canister).
+  VITE_HAVEN_AOL_CANISTER_ID: z.string().optional().default('gny6k-fqaaa-aaaab-ag3ra-cai'),
+  VITE_ICP_HOST: z.string().url().optional().default('https://icp-api.io'),
+  VITE_EIP712_CHAIN_ID: z.coerce.number().int().positive().optional().default(1),
+  VITE_EIP712_VERIFYING_CONTRACT: z.string().optional().default('0x0000000000000000000000000000000000000000'),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -54,6 +60,10 @@ function getEnv(): Env {
     VITE_ARKIV_RPC_URL: import.meta.env.VITE_ARKIV_RPC_URL || undefined,
     VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || undefined,
     VITE_GATE_FAUCET_URL: import.meta.env.VITE_GATE_FAUCET_URL || undefined,
+    VITE_HAVEN_AOL_CANISTER_ID: import.meta.env.VITE_HAVEN_AOL_CANISTER_ID || undefined,
+    VITE_ICP_HOST: import.meta.env.VITE_ICP_HOST || undefined,
+    VITE_EIP712_CHAIN_ID: import.meta.env.VITE_EIP712_CHAIN_ID || undefined,
+    VITE_EIP712_VERIFYING_CONTRACT: import.meta.env.VITE_EIP712_VERIFYING_CONTRACT || undefined,
   }
 
   const result = envSchema.safeParse(raw)

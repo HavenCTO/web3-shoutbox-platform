@@ -28,7 +28,7 @@ export function TrackCard({ content }: { content: string }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-ink">{title}</p>
         <p className="text-xs text-ink-muted">{track ? (track.gated ? 'Community release' : 'Free release') : 'Loading…'}</p>
-        {isCurrent && status === 'gated' && <p className="text-xs text-evm">Unlocking for you…</p>}
+        {isCurrent && status === 'gated' && <p className="text-xs text-evm">Unlocking for you — this can take a moment after joining…</p>}
         {isCurrent && status === 'error' && <p className="text-xs text-alert">Could not load this track. Try again.</p>}
       </div>
       <button
