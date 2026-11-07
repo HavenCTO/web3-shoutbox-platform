@@ -46,6 +46,9 @@ jobs:
           # Presence and group coordination need a reachable hosted relay.
           VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || secrets.VITE_GUN_RELAY_PEERS }}
           VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES || secrets.VITE_SLIDING_WINDOW_MINUTES }}
+          # Rooms this build will open; must match xmtp-bridge's
+          # [shoutbox].allowed_rooms. Falls back to the single default room.
+          VITE_ALLOWED_ROOMS: ${{ vars.VITE_ALLOWED_ROOMS || secrets.VITE_ALLOWED_ROOMS || 'https://shoutbox.pinme.dev/default' }}
           VITE_SHOUTBOX_BRIDGE_ADDRESSES: ${{ vars.VITE_SHOUTBOX_BRIDGE_ADDRESSES || secrets.VITE_SHOUTBOX_BRIDGE_ADDRESSES }}
           VITE_XMTP_MLS_DIAGNOSTICS: ${{ vars.VITE_XMTP_MLS_DIAGNOSTICS || 'false' }}
         run: |

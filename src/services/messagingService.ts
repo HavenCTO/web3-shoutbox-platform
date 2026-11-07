@@ -27,6 +27,7 @@ import { tryEmitXmtpMlsDiagnostic } from '@/lib/xmtpMlsDiagnostics'
 import { type Result, ok, err } from '@/types/result'
 import type { ShoutboxMessage } from '@/types/message'
 import { retryWithBackoff } from '@/lib/retry'
+import { normalizeUrl } from '@/lib/url-utils'
 
 // Re-export Group type for consumers
 export type XmtpGroup = Group
@@ -114,6 +115,13 @@ function wrapError(error: unknown, fallbackCode: string): MessagingError {
  * Creates a new XMTP group conversation with the given wallet addresses.
  * Retries on transient failures; waits longer on rate limits.
  *
+ * The group is named after `roomUrl` (normalized). That name is the only
+ * thing on the wire that says which shoutbox room a group belongs to — the
+ * room key is a frontend concept and never reaches the bridge — so the
+ * bridge reads it back and refuses groups outside `[shoutbox].allowed_rooms`.
+ * Every sliding window creates a fresh group, so the name has to be set
+ * here, at creation, for each one.
+ *
  * Presence is untrusted: anyone can write any address into GunDB, and an
  * address with no registered XMTP inbox makes the whole
  * `createGroupWithIdentifiers` call fail. To keep one bogus record from
@@ -124,8 +132,10 @@ function wrapError(error: unknown, fallbackCode: string): MessagingError {
 export async function createGroup(
   client: XmtpClient,
   memberAddresses: string[],
+  roomUrl: string,
 ): Promise<Result<Group, MessagingError>> {
   try {
+    const groupName = normalizeUrl(roomUrl)
     let reachable = memberAddresses
     if (memberAddresses.length > 0) {
       try {
@@ -163,7 +173,7 @@ export async function createGroup(
           identifier: addr.toLowerCase(),
           identifierKind: IdentifierKind.Ethereum,
         }))
-        return client.conversations.createGroupWithIdentifiers(identifiers)
+        return client.conversations.createGroupWithIdentifiers(identifiers, { groupName })
       },
       {
         maxRetries: 2,

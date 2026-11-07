@@ -38,7 +38,7 @@ export function useShoutboxRoom(roomUrl: string) {
   useOnlineUsers(roomKey)
 
   // Group lifecycle with sliding window
-  const { activeGroupId, groupState, currentWindow, error: groupError } = useGroupLifecycle(roomKey)
+  const { activeGroupId, groupState, currentWindow, error: groupError } = useGroupLifecycle(roomKey, roomUrl)
 
   const onlineUsers = usePresenceStore((s) => s.onlineUsers)
   const presenceSyncStatus = useGunPresenceSyncStore((s) => s.syncStatus)

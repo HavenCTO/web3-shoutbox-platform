@@ -49,6 +49,9 @@ export default defineConfig({
             // override these).
             VITE_XMTP_ENV: 'dev',
             VITE_APP_URL: E2E_BASE_URL,
+            // Each run opens its own throwaway room, which the production
+            // allowlist would (correctly) refuse — lift it for the test app.
+            VITE_ALLOWED_ROOMS: '*',
           },
         },
       ],

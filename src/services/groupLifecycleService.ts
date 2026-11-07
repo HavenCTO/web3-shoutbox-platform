@@ -206,6 +206,7 @@ export async function createGroupAsLeader(
   onlineUsers: OnlineUser[],
   epoch: number,
   windowMinutes: number,
+  roomUrl: string,
 ): Promise<Result<GroupWindow, GroupLifecycleError>> {
   try {
     // Race check: another leader may have written first
@@ -223,7 +224,7 @@ export async function createGroupAsLeader(
       BRIDGE_ADDRESSES,
     )
 
-    const groupResult = await createGroup(xmtpClient, addresses)
+    const groupResult = await createGroup(xmtpClient, addresses, roomUrl)
     if (!groupResult.ok) {
       return err(new GroupLifecycleError(groupResult.error.message, 'CREATE_FAILED'))
     }
@@ -354,6 +355,7 @@ export async function handleLeaderFailover(
   onlineUsers: OnlineUser[],
   currentEpoch: number,
   windowMinutes: number,
+  roomUrl: string,
   timeoutMs: number = 15_000,
 ): Promise<Result<GroupWindow, GroupLifecycleError>> {
   const appeared = await waitForGroup(gun, roomKey, timeoutMs)
@@ -369,5 +371,6 @@ export async function handleLeaderFailover(
     onlineUsers,
     currentEpoch,
     windowMinutes,
+    roomUrl,
   )
 }

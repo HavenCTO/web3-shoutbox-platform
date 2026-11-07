@@ -32,6 +32,14 @@ const envSchema = z.object({
 
   VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(60),
 
+  // Rooms this deployment will open, comma-separated and normalized. Every
+  // entry point that would otherwise let a visitor name an arbitrary room
+  // (the `?room=` query parameter, the room browser's free-text join form,
+  // the embed's document.referrer fallback) resolves through this list, so a
+  // shoutbox serves the rooms the operator chose and nothing else. A lone
+  // `*` disables the restriction (local development and e2e only).
+  VITE_ALLOWED_ROOMS: z.string().optional().default('https://shoutbox.pinme.dev/default'),
+
   // Embedded playback: Arkiv (Tiramisu) RPC for track lookup. Public read-only.
   VITE_ARKIV_RPC_URL: z.string().url().optional().default('https://rpc.tiramisu.db-chain.testnet.arkiv.network'),
 
@@ -57,6 +65,7 @@ function getEnv(): Env {
     VITE_APP_URL: normalizeViteAppUrl(String(import.meta.env.VITE_APP_URL ?? '')),
     VITE_GUN_RELAY_PEERS: import.meta.env.VITE_GUN_RELAY_PEERS || undefined,
     VITE_SLIDING_WINDOW_MINUTES: import.meta.env.VITE_SLIDING_WINDOW_MINUTES || undefined,
+    VITE_ALLOWED_ROOMS: import.meta.env.VITE_ALLOWED_ROOMS,
     VITE_ARKIV_RPC_URL: import.meta.env.VITE_ARKIV_RPC_URL || undefined,
     VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || undefined,
     VITE_GATE_FAUCET_URL: import.meta.env.VITE_GATE_FAUCET_URL || undefined,

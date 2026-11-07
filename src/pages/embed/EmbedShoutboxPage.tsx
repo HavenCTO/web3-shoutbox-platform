@@ -5,19 +5,19 @@ import { useShoutboxRoom } from '@/hooks/useShoutboxRoom'
 import { useXmtpClient } from '@/hooks/useXmtpClient'
 import { ChatContainer } from '@/components/chat/ChatContainer'
 import { PlayerDock } from '@/components/chat/PlayerDock'
+import { resolveRoom as resolveAllowedRoom } from '@/lib/roomPolicy'
 
-const DEFAULT_ROOM = 'https://shoutbox.pinme.dev/default'
-
+/**
+ * The room this embed opens.
+ *
+ * A command from the embedding page wins, then its config. The old third
+ * fallback — the embedding page's `document.referrer` — is gone: it invented
+ * a room out of whatever host happened to embed the widget, which is how
+ * strangers' pages became shoutbox rooms. Anything unrecognized now lands on
+ * the deployment's own room instead.
+ */
 function resolveRoom(configRoom?: string, commandRoom?: string): string {
-  if (commandRoom) return commandRoom
-  if (configRoom) return configRoom
-  if (typeof document !== 'undefined' && document.referrer) {
-    try {
-      const url = new URL(document.referrer)
-      return `${url.origin}${url.pathname}`.replace(/\/$/, '')
-    } catch { /* fall through */ }
-  }
-  return DEFAULT_ROOM
+  return resolveAllowedRoom(commandRoom || configRoom)
 }
 
 export function EmbedShoutboxPage() {

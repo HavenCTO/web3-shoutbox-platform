@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router'
 import { Globe, ArrowRight, Clock, Star, Trash2 } from 'lucide-react'
 import { normalizeUrl } from '@/lib/url-utils'
+import { ALLOWED_ROOMS, ALLOW_ALL, DEFAULT_ROOM, isRoomAllowed, roomLabel } from '@/lib/roomPolicy'
 
 const RECENT_ROOMS_KEY = 'shoutbox:recent-rooms'
 const MAX_RECENT = 10
@@ -12,12 +13,17 @@ interface SuggestedRoom {
   description: string
 }
 
-const SUGGESTED_ROOMS: SuggestedRoom[] = [
-  { name: 'General Chat', url: 'https://shoutbox.pinme.dev/general', description: 'Open discussion for everyone' },
-  { name: 'Web3 Developers', url: 'https://shoutbox.pinme.dev/web3-dev', description: 'Talk about dApps, smart contracts & DeFi' },
-  { name: 'XMTP Community', url: 'https://shoutbox.pinme.dev/xmtp', description: 'Discuss XMTP messaging protocol' },
-  { name: 'GunDB Builders', url: 'https://shoutbox.pinme.dev/gundb', description: 'Decentralized database enthusiasts' },
-]
+/**
+ * The rooms this deployment serves, rather than a hand-picked list of
+ * neighbouring ones: offering a room the allowlist would refuse only sends
+ * visitors to an error. An unrestricted deployment (`VITE_ALLOWED_ROOMS=*`)
+ * offers nothing here, since it has no fixed set to show.
+ */
+const SUGGESTED_ROOMS: SuggestedRoom[] = ALLOWED_ROOMS.map((url) => ({
+  name: roomLabel(url),
+  url,
+  description: 'Served by this shoutbox',
+}))
 
 function getRecentRooms(): string[] {
   try {
@@ -25,6 +31,11 @@ function getRecentRooms(): string[] {
   } catch {
     return []
   }
+}
+
+/** Recent rooms this deployment would still open; the rest are stale. */
+function allowedRecentRooms(): string[] {
+  return getRecentRooms().filter(isRoomAllowed)
 }
 
 function addRecentRoom(url: string) {
@@ -41,18 +52,24 @@ function removeRecentRoom(url: string) {
 export function RoomBrowserPage() {
   const navigate = useNavigate()
   const [urlInput, setUrlInput] = useState('')
-  const [recentRooms, setRecentRooms] = useState<string[]>(getRecentRooms)
+  const [recentRooms, setRecentRooms] = useState<string[]>(allowedRecentRooms)
   const [error, setError] = useState<string | null>(null)
 
   function joinRoom(url: string) {
+    let normalized: string
     try {
-      const normalized = normalizeUrl(url)
-      addRecentRoom(normalized)
-      setRecentRooms(getRecentRooms())
-      navigate(`/?room=${encodeURIComponent(normalized)}`)
+      normalized = normalizeUrl(url)
     } catch {
-      setError('Please enter a valid URL (e.g., https://shoutbox.pinme.dev/my-room)')
+      setError('Please enter a valid URL (e.g., https://shoutbox.pinme.dev/default)')
+      return
     }
+    if (!isRoomAllowed(normalized)) {
+      setError(`This shoutbox only serves ${ALLOWED_ROOMS.join(', ')}`)
+      return
+    }
+    addRecentRoom(normalized)
+    setRecentRooms(allowedRecentRooms())
+    navigate(`/?room=${encodeURIComponent(normalized)}`)
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -65,7 +82,7 @@ export function RoomBrowserPage() {
 
   function handleRemoveRecent(url: string) {
     removeRecentRoom(url)
-    setRecentRooms(getRecentRooms())
+    setRecentRooms(allowedRecentRooms())
   }
 
   return (
@@ -75,7 +92,7 @@ export function RoomBrowserPage() {
       {/* Manual room entry */}
       <form onSubmit={handleSubmit} className="mb-6 sm:mb-8">
         <label htmlFor="room-url" className="mb-2 block text-sm font-medium text-ink">
-          Join any room by URL
+          Join a room by URL
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
@@ -85,7 +102,7 @@ export function RoomBrowserPage() {
               type="url"
               value={urlInput}
               onChange={(e) => { setUrlInput(e.target.value); setError(null) }}
-              placeholder="https://shoutbox.pinme.dev/my-room"
+              placeholder={ALLOW_ALL ? 'https://shoutbox.pinme.dev/my-room' : DEFAULT_ROOM}
               className="focus-ring w-full rounded-lg bg-void-container py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-faint"
             />
           </div>

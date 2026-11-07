@@ -43,7 +43,7 @@ const RETRY_DELAY_MS = 3_000
  *  - Once a `groupId` is set for the epoch (**latch**), the gate is permanently
  *    satisfied — the group is never torn down because the online count dips.
  */
-export function useGroupLifecycle(roomKey: string | null) {
+export function useGroupLifecycle(roomKey: string | null, roomUrl: string) {
   const gun = useGun()
   const { client, inboxId, status } = useXmtpClient()
   const { isLeader } = useLeaderElection()
@@ -228,7 +228,7 @@ export function useGroupLifecycle(roomKey: string | null) {
             const freshUsers = usePresenceStore.getState().onlineUsers
             if (isLeader && isGroupOrphaned(existing.data, freshUsers)) {
               const takeResult = await createGroupAsLeader(
-                client, gun, roomKey, freshUsers, existing.data.epoch + 1, WINDOW_MINUTES,
+                client, gun, roomKey, freshUsers, existing.data.epoch + 1, WINDOW_MINUTES, roomUrl,
               )
               if (cancelled) return
               if (takeResult.ok) {
@@ -253,7 +253,7 @@ export function useGroupLifecycle(roomKey: string | null) {
         // 3. Gate already satisfied — leader creates, non-leader waits
         if (isLeader) {
           const createResult = await createGroupAsLeader(
-            client, gun, roomKey, onlineUsers, 1, WINDOW_MINUTES,
+            client, gun, roomKey, onlineUsers, 1, WINDOW_MINUTES, roomUrl,
           )
           if (cancelled) return
           if (createResult.ok) {
@@ -263,7 +263,7 @@ export function useGroupLifecycle(roomKey: string | null) {
           }
         } else {
           const failoverResult = await handleLeaderFailover(
-            client, gun, roomKey, onlineUsers, 1, WINDOW_MINUTES, LEADER_FAILOVER_TIMEOUT_MS,
+            client, gun, roomKey, onlineUsers, 1, WINDOW_MINUTES, roomUrl, LEADER_FAILOVER_TIMEOUT_MS,
           )
           if (cancelled) return
           if (failoverResult.ok) {
@@ -400,7 +400,7 @@ export function useGroupLifecycle(roomKey: string | null) {
               const freshUsers = usePresenceStore.getState().onlineUsers
               if (isLeader && isGroupOrphaned(existing.data, freshUsers)) {
                 const takeResult = await createGroupAsLeader(
-                  client!, gun, roomKey!, freshUsers, existing.data.epoch + 1, WINDOW_MINUTES,
+                  client!, gun, roomKey!, freshUsers, existing.data.epoch + 1, WINDOW_MINUTES, roomUrl,
                 )
                 if (takeResult.ok) {
                   activateWindow(takeResult.data)
@@ -414,7 +414,7 @@ export function useGroupLifecycle(roomKey: string | null) {
 
           if (isLeader) {
             const result = await createGroupAsLeader(
-              client!, gun, roomKey!, currentOnlineUsers, 1, WINDOW_MINUTES,
+              client!, gun, roomKey!, currentOnlineUsers, 1, WINDOW_MINUTES, roomUrl,
             )
             if (result.ok) {
               activateWindow(result.data)
@@ -423,7 +423,7 @@ export function useGroupLifecycle(roomKey: string | null) {
             }
           } else {
             const result = await handleLeaderFailover(
-              client!, gun, roomKey!, currentOnlineUsers, 1, WINDOW_MINUTES, LEADER_FAILOVER_TIMEOUT_MS,
+              client!, gun, roomKey!, currentOnlineUsers, 1, WINDOW_MINUTES, roomUrl, LEADER_FAILOVER_TIMEOUT_MS,
             )
             if (result.ok) {
               const joinResult = await discoverAndJoinGroup(client!, gun, roomKey!)
@@ -480,7 +480,7 @@ export function useGroupLifecycle(roomKey: string | null) {
 
       if (isLeader) {
         const result = await createGroupAsLeader(
-          client, gun, roomKey, onlineUsers, nextEpoch, WINDOW_MINUTES,
+          client, gun, roomKey, onlineUsers, nextEpoch, WINDOW_MINUTES, roomUrl,
         )
         if (cancelled) return
         if (result.ok) {
@@ -490,7 +490,7 @@ export function useGroupLifecycle(roomKey: string | null) {
         }
       } else {
         const result = await handleLeaderFailover(
-          client, gun, roomKey, onlineUsers, nextEpoch, WINDOW_MINUTES, LEADER_FAILOVER_TIMEOUT_MS,
+          client, gun, roomKey, onlineUsers, nextEpoch, WINDOW_MINUTES, roomUrl, LEADER_FAILOVER_TIMEOUT_MS,
         )
         if (cancelled) return
         if (result.ok) {

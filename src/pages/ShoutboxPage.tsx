@@ -7,8 +7,8 @@ import { ChatContainer } from '@/components/chat/ChatContainer'
 import { PlayerDock } from '@/components/chat/PlayerDock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { GroupState } from '@/types/group'
+import { ALLOWED_ROOMS, DEFAULT_ROOM, isRoomAllowed, resolveRoom } from '@/lib/roomPolicy'
 
-const DEFAULT_ROOM = 'https://shoutbox.pinme.dev/default'
 const DEBOUNCE_MS = 600
 
 function truncateHash(hash: string | null): string {
@@ -33,7 +33,9 @@ function groupStateLabel(state: GroupState): { text: string; color: string } {
 
 export function ShoutboxPage() {
   const [searchParams] = useSearchParams()
-  const roomParam = searchParams.get('room') || DEFAULT_ROOM
+  // Anything the address bar names that is not an allowed room collapses to
+  // the deployment's room, so `?room=` cannot open a room of its own.
+  const roomParam = resolveRoom(searchParams.get('room') || DEFAULT_ROOM)
   return <ShoutboxPageInner key={roomParam} initialRoom={roomParam} />
 }
 
@@ -48,10 +50,15 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       const trimmed = urlInput.trim()
-      if (trimmed) setDebouncedUrl(trimmed)
+      // Resolved on every change: a URL outside the allowlist never reaches
+      // `useShoutboxRoom`, so the chat cannot leave the allowed rooms even
+      // though the bar still shows what was typed.
+      if (trimmed) setDebouncedUrl(resolveRoom(trimmed))
     }, DEBOUNCE_MS)
     return () => clearTimeout(timerRef.current)
   }, [urlInput])
+
+  const roomBlocked = urlInput.trim().length > 0 && !isRoomAllowed(urlInput)
 
   const room = useShoutboxRoom(debouncedUrl)
   const stateInfo = useMemo(() => groupStateLabel(room.groupState), [room.groupState])
@@ -94,6 +101,12 @@ function ShoutboxPageInner({ initialRoom }: { initialRoom: string }) {
           {room.isLeader && (
             <span className="flex items-center gap-1 text-evm">
               <Crown className="h-3 w-3" /> Host
+            </span>
+          )}
+          {roomBlocked && (
+            <span className="flex items-center gap-1 text-ember">
+              <Globe className="h-3 w-3" />
+              This shoutbox only serves {ALLOWED_ROOMS.join(', ')}
             </span>
           )}
         </div>
