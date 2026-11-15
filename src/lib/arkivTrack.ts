@@ -1,5 +1,6 @@
 import { env } from '@/config/env'
 import type { TrackRef } from './trackAnnounce'
+import type { Chain } from 'viem'
 
 export interface TrackInfo {
   key: string
@@ -88,7 +89,10 @@ export function fetchTrack(ref: TrackRef): Promise<TrackInfo | null> {
       const chains = await import('@arkiv-network/sdk/chains')
       const { http } = await import('viem')
       // rabdi() requires an access key; "" selects the public endpoint.
-      const client = sdk.createPublicClient({ chain: (chains as Record<string, (o: { accessKey: string }) => unknown>).rabdi({ accessKey: '' }), transport: http(env.VITE_ARKIV_RPC_URL) })
+      const client = sdk.createPublicClient({
+        chain: (chains as unknown as Record<string, (o: { accessKey: string }) => Chain>).rabdi({ accessKey: '' }),
+        transport: http(env.VITE_ARKIV_RPC_URL),
+      })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const entity: any = await (client as any).getEntity(ref.arkivKey as `0x${string}`)
       if (!entity) return null
