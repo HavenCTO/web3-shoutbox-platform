@@ -40,8 +40,8 @@ const envSchema = z.object({
   // `*` disables the restriction (local development and e2e only).
   VITE_ALLOWED_ROOMS: z.string().optional().default('https://shoutbox.pinme.dev/default'),
 
-  // Embedded playback: Arkiv (Tiramisu) RPC for track lookup. Public read-only.
-  VITE_ARKIV_RPC_URL: z.string().url().optional().default('https://rpc.tiramisu.db-chain.testnet.arkiv.network'),
+  // Embedded playback: Arkiv (Rabdi) RPC for track lookup. Public read-only.
+  VITE_ARKIV_RPC_URL: z.string().url().optional().default('https://rpc.rabdi.db-chain.testnet.arkiv.network'),
 
   // Sepolia RPC for silent gate-balance reads for the guest identity.
   VITE_SEPOLIA_RPC_URL: z.string().url().optional().default('https://ethereum-sepolia-rpc.publicnode.com'),

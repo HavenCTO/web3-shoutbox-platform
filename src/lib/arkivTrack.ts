@@ -87,11 +87,25 @@ export function fetchTrack(ref: TrackRef): Promise<TrackInfo | null> {
       const sdk = await import('@arkiv-network/sdk')
       const chains = await import('@arkiv-network/sdk/chains')
       const { http } = await import('viem')
-      const client = sdk.createPublicClient({ chain: chains.tiramisu, transport: http(env.VITE_ARKIV_RPC_URL) })
+      // rabdi() requires an access key; "" selects the public endpoint.
+      const client = sdk.createPublicClient({ chain: (chains as Record<string, (o: { accessKey: string }) => unknown>).rabdi({ accessKey: '' }), transport: http(env.VITE_ARKIV_RPC_URL) })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const entity: any = await (client as any).getEntity(ref.arkivKey as `0x${string}`)
       if (!entity) return null
-      return trackFromEntity(ref.arkivKey as string, attributesToRecord(entity.attributes), decodePayload(entity.payload), ref.title, entity.owner ?? null)
+      // SDK 1.x getEntity returns a flat row: `$owner`, `$attributes` map,
+      // and `payload` as a tagged bytes column ({type:'bytes', value:'0x…'}).
+      const attrs = attributesToRecord(entity.$attributes ?? entity.attributes)
+      let payloadRaw: unknown = entity.payload
+      if (payloadRaw && typeof payloadRaw === 'object' && 'value' in (payloadRaw as object)) {
+        payloadRaw = (payloadRaw as { value: unknown }).value
+      }
+      if (typeof payloadRaw === 'string' && /^0x[0-9a-fA-F]*$/.test(payloadRaw) && payloadRaw.length % 2 === 0) {
+        const hex = payloadRaw.slice(2)
+        payloadRaw = Uint8Array.from({ length: hex.length / 2 }, (_, i) => parseInt(hex.slice(i * 2, i * 2 + 2), 16))
+      }
+      const owner = entity.$owner ?? entity.owner ?? null
+      const ownerAddr = owner && typeof owner === 'object' && 'value' in (owner as object) ? (owner as { value: unknown }).value : owner
+      return trackFromEntity(ref.arkivKey as string, attrs, decodePayload(payloadRaw), ref.title, typeof ownerAddr === 'string' ? ownerAddr : null)
     } catch { return null }
   })()
   cache.set(ref.arkivKey, p)
