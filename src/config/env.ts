@@ -50,7 +50,7 @@ const envSchema = z.object({
   VITE_GATE_FAUCET_URL: z.string().optional().default(''),
 
   // Haven-AOL gated unlock (defaults match the deployed canister).
-  VITE_HAVEN_AOL_CANISTER_ID: z.string().optional().default('gny6k-fqaaa-aaaab-ag3ra-cai'),
+  VITE_HAVEN_AOL_CANISTER_ID: z.string().optional().default('3gzy3-kaaaa-aaaan-q6y6q-cai'),
   VITE_ICP_HOST: z.string().url().optional().default('https://icp-api.io'),
   VITE_EIP712_CHAIN_ID: z.coerce.number().int().positive().optional().default(1),
   VITE_EIP712_VERIFYING_CONTRACT: z.string().optional().default('0x0000000000000000000000000000000000000000'),
