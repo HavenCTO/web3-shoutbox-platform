@@ -88,9 +88,8 @@ export function fetchTrack(ref: TrackRef): Promise<TrackInfo | null> {
       const sdk = await import('@arkiv-network/sdk')
       const chains = await import('@arkiv-network/sdk/chains')
       const { http } = await import('viem')
-      // rabdi() requires an access key; "" selects the public endpoint.
       const client = sdk.createPublicClient({
-        chain: (chains as unknown as Record<string, (o: { accessKey: string }) => Chain>).rabdi({ accessKey: '' }),
+        chain: (chains as unknown as Record<string, (o: { accessKey: string }) => Chain>).rabdi({ accessKey: env.VITE_ARKIV_API_KEY }),
         transport: http(env.VITE_ARKIV_RPC_URL),
       })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -43,6 +43,7 @@ jobs:
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID }}
           VITE_XMTP_ENV: ${{ vars.VITE_XMTP_ENV || secrets.VITE_XMTP_ENV || 'production' }}
           VITE_APP_URL: ${{ vars.VITE_APP_URL || secrets.VITE_APP_URL || 'https://web3-shoutbox.pinme.eth.limo/' }}
+          VITE_ARKIV_API_KEY: ${{ vars.VITE_ARKIV_API_KEY || secrets.ARKIV_API_KEY || '' }}
           # Presence and group coordination need a reachable hosted relay.
           VITE_GUN_RELAY_PEERS: ${{ vars.VITE_GUN_RELAY_PEERS || secrets.VITE_GUN_RELAY_PEERS }}
           VITE_SLIDING_WINDOW_MINUTES: ${{ vars.VITE_SLIDING_WINDOW_MINUTES || secrets.VITE_SLIDING_WINDOW_MINUTES }}

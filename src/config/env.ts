@@ -40,8 +40,9 @@ const envSchema = z.object({
   // `*` disables the restriction (local development and e2e only).
   VITE_ALLOWED_ROOMS: z.string().optional().default('https://shoutbox.pinme.dev/default'),
 
-  // Embedded playback: Arkiv (Rabdi) RPC for track lookup. Public read-only.
+  // Embedded playback: Arkiv (Rabdi) RPC for track lookup. Key required (INVALID_KEY 401 without it).
   VITE_ARKIV_RPC_URL: z.string().url().optional().default('https://rpc.rabdi.db-chain.testnet.arkiv.network'),
+  VITE_ARKIV_API_KEY: z.string().optional().default(''),
 
   // Sepolia RPC for silent gate-balance reads for the guest identity.
   VITE_SEPOLIA_RPC_URL: z.string().url().optional().default('https://ethereum-sepolia-rpc.publicnode.com'),
@@ -67,6 +68,7 @@ function getEnv(): Env {
     VITE_SLIDING_WINDOW_MINUTES: import.meta.env.VITE_SLIDING_WINDOW_MINUTES || undefined,
     VITE_ALLOWED_ROOMS: import.meta.env.VITE_ALLOWED_ROOMS,
     VITE_ARKIV_RPC_URL: import.meta.env.VITE_ARKIV_RPC_URL || undefined,
+    VITE_ARKIV_API_KEY: import.meta.env.VITE_ARKIV_API_KEY || undefined,
     VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || undefined,
     VITE_GATE_FAUCET_URL: import.meta.env.VITE_GATE_FAUCET_URL || undefined,
     VITE_HAVEN_AOL_CANISTER_ID: import.meta.env.VITE_HAVEN_AOL_CANISTER_ID || undefined,
