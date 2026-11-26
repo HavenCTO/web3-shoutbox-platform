@@ -32,6 +32,10 @@ const envSchema = z.object({
 
   VITE_SLIDING_WINDOW_MINUTES: z.coerce.number().positive().optional().default(60),
 
+  // Standing bridge addresses seated in every room group (comma-separated 0x),
+  // e.g. the agent host running the XMTP bridge. Blank = built-in default bridge.
+  VITE_SHOUTBOX_BRIDGE_ADDRESSES: z.string().optional().default(''),
+
   // Rooms this deployment will open, comma-separated and normalized. Every
   // entry point that would otherwise let a visitor name an arbitrary room
   // (the `?room=` query parameter, the room browser's free-text join form,
@@ -67,6 +71,7 @@ function getEnv(): Env {
     VITE_GUN_RELAY_PEERS: import.meta.env.VITE_GUN_RELAY_PEERS || undefined,
     VITE_SLIDING_WINDOW_MINUTES: import.meta.env.VITE_SLIDING_WINDOW_MINUTES || undefined,
     VITE_ALLOWED_ROOMS: import.meta.env.VITE_ALLOWED_ROOMS,
+    VITE_SHOUTBOX_BRIDGE_ADDRESSES: import.meta.env.VITE_SHOUTBOX_BRIDGE_ADDRESSES || undefined,
     VITE_ARKIV_RPC_URL: import.meta.env.VITE_ARKIV_RPC_URL || undefined,
     VITE_ARKIV_API_KEY: import.meta.env.VITE_ARKIV_API_KEY || undefined,
     VITE_SEPOLIA_RPC_URL: import.meta.env.VITE_SEPOLIA_RPC_URL || undefined,

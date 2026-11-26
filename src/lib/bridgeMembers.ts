@@ -7,6 +7,8 @@
  * Configured via VITE_SHOUTBOX_BRIDGE_ADDRESSES (comma-separated 0x addresses).
  */
 
+import { env } from '@/config/env'
+
 const ETH_ADDRESS = /^0x[0-9a-fA-F]{40}$/
 
 /** Parse the env value: trims, lower-cases, drops blanks, invalid entries and duplicates. */
@@ -48,5 +50,5 @@ export function resolveBridgeAddresses(raw: string | undefined | null): string[]
 
 /** Standing members from the build-time environment. */
 export const BRIDGE_ADDRESSES: readonly string[] = resolveBridgeAddresses(
-  import.meta.env.VITE_SHOUTBOX_BRIDGE_ADDRESSES,
+  env.VITE_SHOUTBOX_BRIDGE_ADDRESSES,
 )
